@@ -21,25 +21,28 @@ void z80_del(z80_t *z80)
 	free(z80);
 }
 
+static void next_instruction(z80_t *z80)
+{
+	uint8_t opcode = mem_u8(z80->mem, z80->regs.pc);
+	if (opcode == 0xCB)
+		z80->instr = &g_z80_cb_instructions[mem_u8(z80->mem, z80->regs.pc + 1)];
+	else
+		z80->instr = &g_z80_instructions[opcode];
+
+	z80->instr_cycle = 0;
+	fprintf(stderr, "%02" PRIx8 ": %s\n", opcode, z80->instr->name);
+}
+
 void z80_cycle(z80_t *z80)
 {
-	if (z80->instr_cycle == 0)
+	if (!z80->instr)
 	{
-		uint8_t opcode = mem_u8(z80->mem, z80->regs.pc);
-		z80->instr = &g_z80_instructions[opcode];
-		if (!z80->instr->name)
-		{
-			fprintf(stderr, "unknown instruction: %02" PRIx8 " as %04" PRIx16 " \n", opcode, z80->regs.pc);
-			z80->regs.pc++;
-			return;
-		}
-
-		fprintf(stderr, "found instruction: %02" PRIx8 " (%s)\n", opcode, z80->instr->name);
-		z80->instr_cycle = z80->instr->cycles;
+		next_instruction(z80);
+		return;
 	}
 
-	z80->instr->fn(z80, z80->instr->cycles - z80->instr_cycle);
-	z80->instr_cycle--;
-	if (z80->instr_cycle == 0)
-		z80->regs.pc += z80->instr->length;
+	if (z80->instr->fn(z80, z80->instr_cycle))
+		next_instruction(z80);
+	else
+		z80->instr_cycle++;
 }

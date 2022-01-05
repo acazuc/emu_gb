@@ -2,7 +2,7 @@ NAME = emu_gb.so
 
 CXX = gcc
 
-CFLAGS = -std=c99 -Wall -Wextra -O3 -pipe -g -fPIC
+CFLAGS = -std=c99 -Wall -Wextra -O2 -pipe -g -fPIC
 
 LD = ld
 

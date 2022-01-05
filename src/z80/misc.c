@@ -3,18 +3,35 @@
 
 INSTR_DEF(nop)
 {
-	(void)z80;
 	(void)count;
+	z80->regs.pc++;
+	return true;
 }
 
 INSTR_DEF(stop)
 {
-	(void)z80;
 	(void)count;
+	z80->regs.pc++;
+	return true;
 }
 
 INSTR_DEF(halt)
 {
-	(void)z80;
 	(void)count;
+	z80->regs.pc++;
+	return true;
+}
+
+INSTR_DEF(ei)
+{
+	(void)count;
+	z80->regs.pc++;
+	return true;
+}
+
+INSTR_DEF(di)
+{
+	(void)count;
+	z80->regs.pc++;
+	return true;
 }
