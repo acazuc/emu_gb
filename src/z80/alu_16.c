@@ -9,6 +9,7 @@ INSTR_DEF(inc_##rr) \
 		case 0: \
 			return false; \
 		case 1: \
+			z80->regs.rr++; \
 			z80->regs.pc += 1; \
 			return true; \
 	} \
@@ -23,6 +24,7 @@ INSTR_DEF(dec_##rr) \
 		case 0: \
 			return false; \
 		case 1: \
+			z80->regs.rr--; \
 			z80->regs.pc += 1; \
 			return true; \
 	} \
@@ -37,8 +39,15 @@ INSTR_DEF(add_hl_##rr) \
 		case 0: \
 			return false; \
 		case 1: \
+		{ \
+			uint16_t v = z80->regs.hl; \
+			z80->regs.hl += z80->regs.rr; \
+			Z80_SET_FLAG_N(z80, 0); \
+			z80_update_hflag(z80, v, z80->regs.rr); \
+			z80_update_cflag(z80, v, z80->regs.rr); \
 			z80->regs.pc += 1; \
 			return true; \
+		} \
 	} \
 	return true; \
 }

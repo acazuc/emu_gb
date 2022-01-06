@@ -11,7 +11,7 @@ INSTR_DEF(nop)
 INSTR_DEF(stop)
 {
 	(void)count;
-	z80->regs.pc++;
+	z80->regs.pc += 2;
 	return true;
 }
 

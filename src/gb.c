@@ -81,5 +81,6 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, size_t audio_buf
 	for (size_t i = 0; i < audio_buf_size; ++i)
 		audio_buf[i] = ((int16_t)rand()) / 20; //not too loud
 
-	z80_cycle(gb->z80);
+	for (size_t i = 0; i < 4 * 20; ++i)
+		z80_clock(gb->z80);
 }

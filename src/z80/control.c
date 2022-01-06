@@ -8,9 +8,10 @@ INSTR_DEF(jr_dd)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.i8[0] = mem_get_i8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
-			z80->regs.pc += 2;
+			z80->regs.pc += z80->instr_tmp.i8[0] + 2;
 			return true;
 	}
 	return true;
@@ -23,9 +24,15 @@ INSTR_DEF(jr_nz_n)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.i8[0] = mem_get_i8(z80->mem, z80->regs.pc + 1);
+			if (Z80_HAS_FLAG_Z(z80))
+			{
+				z80->regs.pc += 2;
+				return true;
+			}
 			return false;
 		case 2:
-			z80->regs.pc += 2;
+			z80->regs.pc += z80->instr_tmp.i8[0] + 2;
 			return true;
 	}
 	return true;
@@ -38,9 +45,15 @@ INSTR_DEF(jr_z_n)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.i8[0] = mem_get_i8(z80->mem, z80->regs.pc + 1);
+			if (!Z80_HAS_FLAG_Z(z80))
+			{
+				z80->regs.pc += 2;
+				return true;
+			}
 			return false;
 		case 2:
-			z80->regs.pc += 2;
+			z80->regs.pc += z80->instr_tmp.i8[0] + 2;
 			return true;
 	}
 	return true;
@@ -53,9 +66,15 @@ INSTR_DEF(jr_nc_n)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.i8[0] = mem_get_i8(z80->mem, z80->regs.pc + 1);
+			if (Z80_HAS_FLAG_C(z80))
+			{
+				z80->regs.pc += 2;
+				return true;
+			}
 			return false;
 		case 2:
-			z80->regs.pc += 2;
+			z80->regs.pc += z80->instr_tmp.i8[0] + 2;
 			return true;
 	}
 	return true;
@@ -68,9 +87,15 @@ INSTR_DEF(jr_c_n)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.i8[0] = mem_get_i8(z80->mem, z80->regs.pc + 1);
+			if (Z80_HAS_FLAG_C(z80))
+			{
+				z80->regs.pc += 2;
+				return true;
+			}
 			return false;
 		case 2:
-			z80->regs.pc += 2;
+			z80->regs.pc += z80->instr_tmp.i8[0] + 2;
 			return true;
 	}
 	return true;

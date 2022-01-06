@@ -20,7 +20,7 @@ void mem_del(mem_t *mem)
 	free(mem);
 }
 
-uint8_t mem_u8(mem_t *mem, uint16_t addr)
+uint8_t mem_get_u8(mem_t *mem, uint16_t addr)
 {
 	if (addr < mem->rom->size)
 		return ((uint8_t*)mem->rom->data)[addr];
@@ -29,11 +29,28 @@ uint8_t mem_u8(mem_t *mem, uint16_t addr)
 	return 0;
 }
 
-uint16_t mem_u16(mem_t *mem, uint16_t addr)
+int8_t mem_get_i8(mem_t *mem, uint16_t addr)
 {
-	if (addr < mem->rom->size)
-		return ((uint16_t*)mem->rom->data)[addr];
+	return (int8_t)mem_get_u8(mem, addr);
+}
 
-	fprintf(stderr, "access to unknown addr: %" PRIx16 "\n", addr);
-	return 0;
+uint16_t mem_get_u16(mem_t *mem, uint16_t addr)
+{
+	return (mem_get_u8(mem, addr) << 8)
+	     | (mem_get_u8(mem, addr + 1));
+}
+
+void mem_set_u8(mem_t *mem, uint16_t addr, uint8_t value)
+{
+}
+
+void mem_set_i8(mem_t *mem, uint16_t addr, int8_t value)
+{
+	mem_set_u8(mem, addr, (uint8_t)value);
+}
+
+void mem_set_u16(mem_t *mem, uint16_t addr, uint16_t value)
+{
+	mem_set_u8(mem, addr, value >> 8);
+	mem_set_u8(mem, addr + 1, value);
 }
