@@ -2,6 +2,7 @@
 #define Z80_H
 
 #include <stdint.h>
+#include <stdbool.h>
 #include "mem.h"
 
 enum z80_flag
@@ -12,18 +13,19 @@ enum z80_flag
 	Z80_FLAG_C = (1 << 4),
 };
 
-#define Z80_HAS_FLAG_Z(z80) (((z80)->regs.f & Z80_FLAG_Z) ? 1 : 0)
-#define Z80_HAS_FLAG_N(z80) (((z80)->regs.f & Z80_FLAG_N) ? 1 : 0)
-#define Z80_HAS_FLAG_H(z80) (((z80)->regs.f & Z80_FLAG_H) ? 1 : 0)
-#define Z80_HAS_FLAG_C(z80) (((z80)->regs.f & Z80_FLAG_C) ? 1 : 0)
+#define Z80_GET_FLAG(z80, flag) (((z80)->regs.f & flag) ? 1 : 0)
+#define Z80_GET_FLAG_Z(z80) Z80_GET_FLAG(z80, Z80_FLAG_Z)
+#define Z80_GET_FLAG_N(z80) Z80_GET_FLAG(z80, Z80_FLAG_N)
+#define Z80_GET_FLAG_H(z80) Z80_GET_FLAG(z80, Z80_FLAG_H)
+#define Z80_GET_FLAG_C(z80) Z80_GET_FLAG(z80, Z80_FLAG_C)
 
-#define Z80_SET_FLAG(z80, fl, v) \
+#define Z80_SET_FLAG(z80, flag, v) \
 do \
 { \
 	if (v) \
-		z80->regs.f |=  fl; \
+		z80->regs.f |=  flag; \
 	else \
-		z80->regs.f &= ~fl; \
+		z80->regs.f &= ~flag; \
 } while (0)
 
 #define Z80_SET_FLAG_Z(z80, v) Z80_SET_FLAG(z80, Z80_FLAG_Z, v)
@@ -46,17 +48,16 @@ typedef union z80_regs_s
 	{
 		uint8_t pcl;
 		uint8_t pch;
-		uint8_t spl;
-		uint8_t sph;
-		uint8_t a;
-		uint8_t pad8;
-		uint8_t b;
-		uint8_t c;
-		uint8_t d;
-		uint8_t e;
+		uint8_t p;
+		uint8_t s;
 		uint8_t f;
-		uint8_t h;
+		uint8_t a;
+		uint8_t c;
+		uint8_t b;
+		uint8_t e;
+		uint8_t d;
 		uint8_t l;
+		uint8_t h;
 	};
 } z80_regs_t;
 
@@ -75,13 +76,13 @@ typedef struct z80_s
 	} instr_tmp;
 	z80_instr_t *instr;
 	mem_t *mem;
+	bool ime;
 } z80_t;
 
 z80_t *z80_new(mem_t *mem);
 void z80_del(z80_t *z80);
 
 void z80_clock(z80_t *z80);
-void z80_update_zflag(z80_t *z80, uint8_t v);
 void z80_update_hflag(z80_t *z80, uint8_t v1, uint8_t v2);
 void z80_update_cflag(z80_t *z80, uint8_t v1, uint8_t v2);
 

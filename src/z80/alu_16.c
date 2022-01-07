@@ -10,9 +10,9 @@ INSTR_DEF(inc_##rr) \
 			return false; \
 		case 1: \
 			z80->regs.rr++; \
-			z80->regs.pc += 1; \
-			return true; \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -25,9 +25,9 @@ INSTR_DEF(dec_##rr) \
 			return false; \
 		case 1: \
 			z80->regs.rr--; \
-			z80->regs.pc += 1; \
-			return true; \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -45,10 +45,10 @@ INSTR_DEF(add_hl_##rr) \
 			Z80_SET_FLAG_N(z80, 0); \
 			z80_update_hflag(z80, v, z80->regs.rr); \
 			z80_update_cflag(z80, v, z80->regs.rr); \
-			z80->regs.pc += 1; \
-			return true; \
+			break; \
 		} \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -69,13 +69,23 @@ INSTR_DEF(add_sp_n)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.u16[0] = z80->regs.sp + mem_gi8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
+			z80->regs.sp = (z80->regs.sp & 0xFF00) | (z80->instr_tmp.u16[0] & 0xFF);
 			return false;
 		case 3:
-			z80->regs.pc += 2;
-			return true;
+		{
+			uint8_t v = z80->regs.sp;
+			z80->regs.sp = (z80->regs.sp & 0xFF) | (z80->instr_tmp.u16[0] & 0xFF00);
+			Z80_SET_FLAG_Z(z80, 0);
+			Z80_SET_FLAG_N(z80, 0);
+			z80_update_hflag(z80, v, z80->regs.sp);
+			z80_update_cflag(z80, v, z80->regs.sp);
+			break;
+		}
 	}
+	z80->regs.pc += 2;
 	return true;
 }
 
@@ -86,10 +96,19 @@ INSTR_DEF(ld_hl_spn)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.i8[0] = mem_gi8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
-			z80->regs.pc += 2;
-			return true;
+		{
+			uint8_t v = z80->regs.hl;
+			z80->regs.hl = z80->regs.sp + z80->instr_tmp.i8[0];
+			Z80_SET_FLAG_Z(z80, 0);
+			Z80_SET_FLAG_N(z80, 0);
+			z80_update_hflag(z80, v, z80->regs.hl);
+			z80_update_cflag(z80, v, z80->regs.hl);
+			break;
+		}
 	}
+	z80->regs.pc += 2;
 	return true;
 }

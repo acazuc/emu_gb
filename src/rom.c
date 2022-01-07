@@ -31,3 +31,17 @@ void rom_del(rom_t *rom)
 	free(rom->data);
 	free(rom);
 }
+
+uint8_t *rom_get_u8_rb0(rom_t *rom, uint16_t addr)
+{
+	if (addr < rom->size)
+		return &rom->data[addr];
+	return NULL;
+}
+
+uint8_t *rom_get_u8_rbn(rom_t *rom, uint16_t addr)
+{
+	(void)rom;
+	(void)addr;
+	return NULL;
+}

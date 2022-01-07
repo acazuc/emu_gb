@@ -3,7 +3,7 @@
 
 apu_t *apu_new(mem_t *mem)
 {
-	apu_t *apu = calloc(sizeof(*mem), 1);
+	apu_t *apu = calloc(sizeof(*apu), 1);
 	if (!apu)
 		return NULL;
 

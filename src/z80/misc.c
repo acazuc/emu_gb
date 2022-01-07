@@ -25,6 +25,7 @@ INSTR_DEF(halt)
 INSTR_DEF(ei)
 {
 	(void)count;
+	z80->ime = true;
 	z80->regs.pc++;
 	return true;
 }
@@ -32,6 +33,7 @@ INSTR_DEF(ei)
 INSTR_DEF(di)
 {
 	(void)count;
+	z80->ime = false;
 	z80->regs.pc++;
 	return true;
 }

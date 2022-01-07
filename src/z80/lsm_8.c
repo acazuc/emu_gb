@@ -9,9 +9,10 @@ INSTR_DEF(ld_##rr##_a) \
 		case 0: \
 			return false; \
 		case 1: \
-			z80->regs.pc += 1; \
-			return true; \
+			mem_su8(z80->mem, z80->regs.rr, z80->regs.a); \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -27,9 +28,10 @@ INSTR_DEF(ld_a_##rr) \
 		case 0: \
 			return false; \
 		case 1: \
-			z80->regs.pc += 1; \
-			return true; \
+			z80->regs.a = mem_gu8(z80->mem, z80->regs.rr); \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -45,9 +47,10 @@ INSTR_DEF(ld_##r##_n) \
 		case 0: \
 			return false; \
 		case 1: \
-			z80->regs.pc += 2; \
-			return true; \
+			z80->regs.r = mem_gu8(z80->mem, z80->regs.pc + 1); \
+			break; \
 	} \
+	z80->regs.pc += 2; \
 	return true; \
 }
 
@@ -65,9 +68,10 @@ INSTR_DEF(ld_##r1##_##r2) \
 	switch (count) \
 	{ \
 		case 0: \
-			z80->regs.pc += 1; \
-			return true; \
+			z80->regs.r1 = z80->regs.r2; \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -86,9 +90,10 @@ INSTR_DEF(ld_##r##_hl) \
 		case 0: \
 			return false; \
 		case 1: \
-			z80->regs.pc += 1; \
-			return true; \
+			z80->regs.r = mem_gu8(z80->mem, z80->regs.hl); \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 } \
 INSTR_DEF(ld_hl_##r) \
@@ -98,9 +103,10 @@ INSTR_DEF(ld_hl_##r) \
 		case 0: \
 			return false; \
 		case 1: \
-			z80->regs.pc += 1; \
-			return true; \
+			mem_su8(z80->mem, z80->regs.hl, z80->regs.c); \
+			break; \
 	} \
+	z80->regs.pc += 1; \
 	return true; \
 }
 
@@ -119,9 +125,10 @@ INSTR_DEF(ldi_hl_a)
 		case 0:
 			return false;
 		case 1:
-			z80->regs.pc += 1;
-			return true;
+			mem_su8(z80->mem, z80->regs.hl++, z80->regs.a);
+			break;
 	}
+	z80->regs.pc += 1;
 	return true;
 }
 
@@ -132,9 +139,10 @@ INSTR_DEF(ldi_a_hl)
 		case 0:
 			return false;
 		case 1:
-			z80->regs.pc += 1;
-			return true;
+			z80->regs.a = mem_gu8(z80->mem, z80->regs.hl++);
+			break;
 	}
+	z80->regs.pc += 1;
 	return true;
 }
 
@@ -145,9 +153,10 @@ INSTR_DEF(ldd_hl_a)
 		case 0:
 			return false;
 		case 1:
-			z80->regs.pc += 1;
-			return true;
+			mem_su8(z80->mem, z80->regs.hl--, z80->regs.a);
+			break;
 	}
+	z80->regs.pc += 1;
 	return true;
 }
 
@@ -158,9 +167,10 @@ INSTR_DEF(ldd_a_hl)
 		case 0:
 			return false;
 		case 1:
-			z80->regs.pc += 1;
-			return true;
+			z80->regs.a = mem_gu8(z80->mem, z80->regs.hl--);
+			break;
 	}
+	z80->regs.pc += 1;
 	return true;
 }
 
@@ -171,11 +181,13 @@ INSTR_DEF(ld_rhl_n)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.u8[0] = mem_gu8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
-			z80->regs.pc += 2;
-			return true;
+			mem_su8(z80->mem, z80->regs.hl, z80->instr_tmp.u8[0]);
+			break;
 	}
+	z80->regs.pc += 2;
 	return true;
 }
 
@@ -186,11 +198,13 @@ INSTR_DEF(ld_ffn_a)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.u8[0] = mem_gu8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
-			z80->regs.pc += 2;
-			return true;
+			mem_su8(z80->mem, 0xFF00 + z80->instr_tmp.u8[0], z80->regs.a);
+			break;
 	}
+	z80->regs.pc += 2;
 	return true;
 }
 
@@ -201,9 +215,10 @@ INSTR_DEF(ld_ffc_a)
 		case 0:
 			return false;
 		case 1:
-			z80->regs.pc += 1;
-			return true;
+			mem_su8(z80->mem, 0xFF00 + z80->regs.c, z80->regs.a);
+			break;
 	}
+	z80->regs.pc += 1;
 	return true;
 }
 
@@ -214,11 +229,13 @@ INSTR_DEF(ld_a_ffn)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.u8[0] = mem_gu8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
-			z80->regs.pc += 2;
-			return true;
+			z80->regs.a = mem_gu8(z80->mem, 0xFF00 + z80->instr_tmp.u8[0]);
+			break;
 	}
+	z80->regs.pc += 2;
 	return true;
 }
 
@@ -229,9 +246,10 @@ INSTR_DEF(ld_a_ffc)
 		case 0:
 			return false;
 		case 1:
-			z80->regs.pc += 1;
-			return true;
+			z80->regs.a = mem_gu8(z80->mem, 0xFF00 + z80->regs.c);
+			break;
 	}
+	z80->regs.pc += 1;
 	return true;
 }
 
@@ -242,13 +260,16 @@ INSTR_DEF(ld_a_nn)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.u16[0] = mem_gu8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
+			z80->instr_tmp.u16[0] |= mem_gu8(z80->mem, z80->regs.pc + 2) << 8;
 			return false;
 		case 3:
-			z80->regs.pc += 3;
-			return true;
+			z80->regs.a = mem_gu8(z80->mem, z80->instr_tmp.u16[0]);
+			break;
 	}
+	z80->regs.pc += 3;
 	return true;
 }
 
@@ -259,12 +280,15 @@ INSTR_DEF(ld_nn_a)
 		case 0:
 			return false;
 		case 1:
+			z80->instr_tmp.u16[0] = mem_gu8(z80->mem, z80->regs.pc + 1);
 			return false;
 		case 2:
+			z80->instr_tmp.u16[0] |= mem_gu8(z80->mem, z80->regs.pc + 2) << 8;
 			return false;
 		case 3:
-			z80->regs.pc += 3;
-			return true;
+			mem_su8(z80->mem, z80->instr_tmp.u16[0], z80->regs.a);
+			break;
 	}
+	z80->regs.pc += 3;
 	return true;
 }

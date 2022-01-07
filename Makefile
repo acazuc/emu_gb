@@ -40,8 +40,10 @@ OBJS = $(addprefix $(OBJS_PATH), $(OBJS_NAME))
 all: odir $(NAME)
 
 $(NAME): $(OBJS)
+	@echo "LD dmgbios"
+	@$(LD) -r -b binary -o dmgbios.o dmgbios.bin
 	@echo "LD $(NAME)"
-	@$(LD) -fPIC -shared -o $(NAME) $(OBJS)
+	@$(LD) -fPIC -shared -o $(NAME) $(OBJS) dmgbios.o
 
 $(OBJS_PATH)%.o: $(SRCS_PATH)%.c
 	@echo "CC $<"

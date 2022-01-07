@@ -399,7 +399,7 @@ z80_instr_t g_z80_instructions[256] =
 	/* 0xE8 */
 	{"add sp, n"   , INSTR_NAME(add_sp_n)},
 	{"jp hl"       , INSTR_NAME(jp_hl)},
-	{"ld nn, a"    , INSTR_NAME(ld_nn_a)},
+	{"ld (nn), a"  , INSTR_NAME(ld_nn_a)},
 	{"UNSET (eb)"  , INSTR_NAME(unset)},
 	{"UNSET (ec)"  , INSTR_NAME(unset)},
 	{"UNSET (ed)"  , INSTR_NAME(unset)},
