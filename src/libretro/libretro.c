@@ -12,7 +12,7 @@
 #define VIDEO_HEIGHT 144
 #define VIDEO_PIXELS VIDEO_WIDTH * VIDEO_HEIGHT
 
-#define AUDIO_FRAME (2 * 48000 / 60)
+#define AUDIO_FRAME (2 * 48000 / 59)
 
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
@@ -64,7 +64,7 @@ void retro_get_system_info(struct retro_system_info *info)
 	info->library_name     = "emu_gb";
 	info->library_version  = "0.1";
 	info->need_fullpath    = false;
-	info->valid_extensions = "dmg|bin|gb";
+	info->valid_extensions = "dmg|bin|gb|gbc";
 }
 
 static retro_video_refresh_t video_cb;

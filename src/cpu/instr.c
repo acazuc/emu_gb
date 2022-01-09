@@ -1,5 +1,5 @@
 #include "instr.h"
-#include "z80.h"
+#include "cpu.h"
 
 INSTR_DECL(nop);
 INSTR_DECL(stop);
@@ -199,11 +199,11 @@ INSTR_DECL_OP_N8(set);
 INSTR_DEF(unset)
 {
 	(void)count;
-	z80->regs.pc++;
+	cpu->regs.pc++;
 	return true;
 }
 
-z80_instr_t g_z80_instructions[256] =
+cpu_instr_t g_cpu_instructions[256] =
 {
 	/* 0x00 */
 	{"nop"        , INSTR_NAME(nop)},
@@ -425,7 +425,7 @@ z80_instr_t g_z80_instructions[256] =
 	{"rst 38"      , INSTR_NAME(rst_38)}
 };
 
-z80_instr_t g_z80_cb_instructions[256] =
+cpu_instr_t g_cpu_cb_instructions[256] =
 {
 #define TBL_OP(op) \
 	{#op " b"   , INSTR_NAME(op##_b)}, \

@@ -1,39 +1,47 @@
 #include "instr.h"
-#include "z80.h"
+#include "cpu.h"
 
 INSTR_DEF(nop)
 {
 	(void)count;
-	z80->regs.pc++;
+	cpu->regs.pc++;
 	return true;
 }
 
 INSTR_DEF(stop)
 {
 	(void)count;
-	z80->regs.pc += 2;
+	cpu->regs.pc += 2;
 	return true;
 }
 
 INSTR_DEF(halt)
 {
 	(void)count;
-	z80->regs.pc++;
+	cpu->regs.pc++;
 	return true;
 }
 
 INSTR_DEF(ei)
 {
-	(void)count;
-	z80->ime = true;
-	z80->regs.pc++;
+	switch (count)
+	{
+		case 0:
+			cpu->ime = true;
+			break;
+	}
+	cpu->regs.pc++;
 	return true;
 }
 
 INSTR_DEF(di)
 {
-	(void)count;
-	z80->ime = false;
-	z80->regs.pc++;
+	switch (count)
+	{
+		case 0:
+			cpu->ime = false;
+			break;
+	}
+	cpu->regs.pc++;
 	return true;
 }

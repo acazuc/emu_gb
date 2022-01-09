@@ -1,4 +1,5 @@
 #include "mem.h"
+#include "mbc.h"
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -6,7 +7,7 @@
 extern uint8_t _binary_dmgbios_bin_start;
 extern uint8_t _binary_dmgbios_bin_end;
 
-mem_t *mem_new(rom_t *rom)
+mem_t *mem_new(mbc_t *mbc)
 {
 	if (&_binary_dmgbios_bin_end - &_binary_dmgbios_bin_start != 0x100)
 	{
@@ -18,7 +19,7 @@ mem_t *mem_new(rom_t *rom)
 	if (!mem)
 		return NULL;
 
-	mem->rom = rom;
+	mem->mbc = mbc;
 	return mem;
 }
 
@@ -29,162 +30,116 @@ void mem_del(mem_t *mem)
 	free(mem);
 }
 
-static uint8_t *mem_u8(mem_t *mem, uint16_t addr)
+static uint8_t simple_get(mem_ref_t *ref)
+{
+	return *ref->ptr;
+}
+
+static void simple_set(mem_ref_t *ref, uint8_t v)
+{
+	*ref->ptr = v;
+}
+
+static uint8_t empty_get(mem_ref_t *ref)
+{
+	(void)ref;
+	return 0;
+}
+
+static void empty_set(mem_ref_t *ref, uint8_t v)
+{
+	(void)ref;
+	(void)v;
+}
+
+static uint8_t oam_get(mem_ref_t *ref)
+{
+	(void)ref;
+	return 0;
+}
+
+static void oam_set(mem_ref_t *ref, uint8_t v)
+{
+	(void)ref;
+	(void)v;
+}
+
+static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
 {
 	if (addr < 0x100)
 	{
-		if (mem->highram[MEM_REG_RBK - 0xFF00])
-			return rom_get_u8_rb0(mem->rom, addr);
+		if (mem->highram[MEM_REG_BOOT - 0xFF00])
+			return mbc_get_rom0(mem->mbc, addr);
 		else
-			return &(&_binary_dmgbios_bin_start)[addr];
+			return MEM_REF_PTR(&(&_binary_dmgbios_bin_start)[addr], simple_get, empty_set);
 	}
 
 	if (addr < 0x4000)
-		return rom_get_u8_rb0(mem->rom, addr);
+		return mbc_get_rom0(mem->mbc, addr);
 
 	if (addr < 0x8000)
-		return rom_get_u8_rbn(mem->rom, addr - 0x4000);
+		return mbc_get_romn(mem->mbc, addr - 0x4000);
 
 	if (addr < 0xA000) /* vram */
-		return &mem->vram[addr - 0x8000];
+		return MEM_REF_PTR(&mem->vram[addr - 0x8000], simple_get, simple_set);
 
 	if (addr < 0xC000) /* external ram */
-		return NULL;
+		return mbc_get_ram(mem->mbc, addr - 0xA000);
 
-	if (addr < 0xD000) /* work bank 0 */
-		return &mem->workram0[addr - 0xC000];
+	if (addr < 0xD000) /* work ram bank 0 */
+		return MEM_REF_PTR(&mem->workram0[addr - 0xC000], simple_get, simple_set);
 
 	if (addr < 0xE000) /* work ram bank n */
-		return &mem->workram1[addr - 0xD000];
+		return MEM_REF_PTR(&mem->workram1[addr - 0xD000], simple_get, simple_set);
 
 	if (addr < 0xF000) /* echo ram C000-D000 */
-		return &mem->workram0[addr - 0xE000];
+		return MEM_REF_PTR(&mem->workram0[addr - 0xE000], simple_get, simple_set);
 
 	if (addr < 0xFE00) /* echo ram D000-DDFF */
-		return &mem->workram1[addr - 0xF000];
+		return MEM_REF_PTR(&mem->workram1[addr - 0xF000], simple_get, simple_set);
 
 	if (addr < 0xFEA0) /* OAM */
-		return NULL;
+		return MEM_REF_PTR(&mem->oam[addr - 0xFE00], oam_get, oam_set);
 
 	if (addr < 0xFF00) /* unmapped */
-		return NULL;
+		return MEM_REF_PTR(NULL, empty_get, empty_set);
 
-	return &mem->highram[addr - 0xFF00];
+	return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
 }
 
-uint8_t mem_gu8(mem_t *mem, uint16_t addr)
+uint8_t mem_get_reg(mem_t *mem, uint16_t addr)
 {
-	uint8_t *ptr = mem_u8(mem, addr);
-	if (!ptr)
-		return 0;
-	return *ptr;
+	return mem->highram[addr - 0xFF00];
 }
 
-void mem_su8(mem_t *mem, uint16_t addr, uint8_t v)
+void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
 {
-	uint8_t *ptr = mem_u8(mem, addr);
-	if (!ptr)
-		return;
-	if (addr >= 0x8000 && addr < 0xA000)
-		printf("setting %x to %x\n", addr, v);
-	*ptr = v;
+	mem->highram[addr - 0xFF00] = v;
 }
 
-void mem_xu8(mem_t *mem, uint16_t addr, uint8_t v)
+uint8_t mem_get8(mem_t *mem, uint16_t addr)
 {
-	uint8_t *ptr = mem_u8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr ^= v;
+	mem_ref_t ref = mem_u8(mem, addr);
+	if (ref.get)
+		return ref.get(&ref);
+	return 0;
 }
 
-void mem_ou8(mem_t *mem, uint16_t addr, uint8_t v)
+void mem_set8(mem_t *mem, uint16_t addr, uint8_t v)
 {
-	uint8_t *ptr = mem_u8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr |= v;
+	mem_ref_t ref = mem_u8(mem, addr);
+	if (ref.set)
+		ref.set(&ref, v);
 }
 
-void mem_au8(mem_t *mem, uint16_t addr, uint8_t v)
+uint16_t mem_get16(mem_t *mem, uint16_t addr)
 {
-	uint8_t *ptr = mem_u8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr &= v;
+	return mem_get8(mem, addr + 0) << 0
+	     | mem_get8(mem, addr + 1) << 8;
 }
 
-int8_t *mem_i8(mem_t *mem, uint16_t addr)
+void mem_set16(mem_t *mem, uint16_t addr, uint16_t v)
 {
-	return (int8_t*)mem_u8(mem, addr);
-}
-
-int8_t mem_gi8(mem_t *mem, uint16_t addr)
-{
-	int8_t *ptr = mem_i8(mem, addr);
-	if (!ptr)
-		return 0;
-	return *ptr;
-}
-
-void mem_si8(mem_t *mem, uint16_t addr, int8_t v)
-{
-	int8_t *ptr = mem_i8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr = v;
-}
-
-void mem_xi8(mem_t *mem, uint16_t addr, int8_t v)
-{
-	int8_t *ptr = mem_i8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr ^= v;
-}
-
-void mem_oi8(mem_t *mem, uint16_t addr, int8_t v)
-{
-	int8_t *ptr = mem_i8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr |= v;
-}
-
-void mem_ai8(mem_t *mem, uint16_t addr, int8_t v)
-{
-	int8_t *ptr = mem_i8(mem, addr);
-	if (!ptr)
-		return;
-	*ptr &= v;
-}
-
-uint16_t mem_gu16(mem_t *mem, uint16_t addr)
-{
-	return mem_gu8(mem, addr + 0) << 0
-	     | mem_gu8(mem, addr + 1) << 8;
-}
-
-void mem_su16(mem_t *mem, uint16_t addr, uint16_t v)
-{
-	mem_su8(mem, addr + 0, v >> 0);
-	mem_su8(mem, addr + 1, v >> 8);
-}
-
-void mem_xu16(mem_t *mem, uint16_t addr, uint16_t v)
-{
-	mem_xu8(mem, addr + 0, v >> 0);
-	mem_xu8(mem, addr + 1, v >> 8);
-}
-
-void mem_ou16(mem_t *mem, uint16_t addr, uint16_t v)
-{
-	mem_xu8(mem, addr + 0, v >> 0);
-	mem_xu8(mem, addr + 1, v >> 8);
-}
-
-void mem_au16(mem_t *mem, uint16_t addr, uint16_t v)
-{
-	mem_au8(mem, addr + 0, v >> 0);
-	mem_au8(mem, addr + 1, v >> 8);
+	mem_set8(mem, addr + 0, v >> 0);
+	mem_set8(mem, addr + 1, v >> 8);
 }
