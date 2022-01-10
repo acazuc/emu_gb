@@ -59,27 +59,16 @@ void gb_del(gb_t *gb)
 	free(gb);
 }
 
-static void update_input(gb_t *gb, uint32_t joypad)
+static void gb_clock(gb_t *gb, size_t cycles)
 {
-	if ((mem_get_reg(gb->mem, MEM_REG_JOYP) & 0x10) == 0)
+	for (size_t i = 0; i < cycles; ++i)
 	{
-		mem_set_reg(gb->mem, MEM_REG_JOYP,
-		            (((joypad & GB_BUTTON_RIGHT) ? 0 : 1) << 0)
-		          | (((joypad & GB_BUTTON_LEFT)  ? 0 : 1) << 1)
-		          | (((joypad & GB_BUTTON_UP)    ? 0 : 1) << 2)
-		          | (((joypad & GB_BUTTON_DOWN)  ? 0 : 1) << 3));
-	}
-	else if ((mem_get_reg(gb->mem, MEM_REG_JOYP) & 0x10) == 0x10)
-	{
-		mem_set_reg(gb->mem, MEM_REG_JOYP,
-		            (((joypad & GB_BUTTON_A)      ? 0 : 1) << 0)
-		          | (((joypad & GB_BUTTON_B)      ? 0 : 1) << 1)
-		          | (((joypad & GB_BUTTON_SELECT) ? 0 : 1) << 2)
-		          | (((joypad & GB_BUTTON_START)  ? 0 : 1) << 3));
+		cpu_clock(gb->cpu);
+		apu_clock(gb->apu);
 	}
 }
 
-void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, size_t audio_buf_size, uint32_t joypad)
+void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t audio_buf_size, uint32_t joypad)
 {
 	for (size_t y = 0; y < GPU_HEIGHT; ++y)
 	{
@@ -99,19 +88,10 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, size_t audio_buf
 		}
 	}
 
-	for (size_t i = 0; i < audio_buf_size; ++i)
-		audio_buf[i] = 0;
-
-#if 0
-	for (size_t i = 0; i < 4; ++i)
-		cpu_clock(gb->cpu);
-	return;
-#endif
-
+	gb->mem->joyp = joypad;
 	for (size_t y = 0; y < 144; ++y)
 	{
 		uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);
-		update_input(gb, joypad);
 		mem_set_reg(gb->mem, MEM_REG_LY, y);
 		if ((mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 6)) && lyc == y)
 			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
@@ -125,13 +105,11 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, size_t audio_buf
 		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 2);
 		if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 5))
 			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
-		for (size_t i = 0; i < 80 * 4; ++i)
-			cpu_clock(gb->cpu);
+		gb_clock(gb, 80);
 
 		/* mode 3: lcd data */
 		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 3);
-		for (size_t i = 0; i < 172 * 4; ++i)
-			cpu_clock(gb->cpu);
+		gb_clock(gb, 172);
 
 		gpu_render_line(gb->gpu, y);
 
@@ -139,8 +117,7 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, size_t audio_buf
 		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 0);
 		if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 3))
 			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
-		for (size_t i = 0; i < 204 * 4; ++i)
-			cpu_clock(gb->cpu);
+		gb_clock(gb, 204);
 	}
 
 	/* mode 1: vblank */
@@ -152,14 +129,18 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, size_t audio_buf
 	{
 		uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);
 		mem_set_reg(gb->mem, MEM_REG_LY, y);
+
+		if ((mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 6)) && lyc == y)
+			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+
 		if (lyc == y)
 			mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) | (1 << 2));
 		else
 			mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) & ~(1 << 2));
 
-		for (size_t i = 0; i < 465 * 4; ++i)
-			cpu_clock(gb->cpu);
+		gb_clock(gb, 456);
 	}
 
 	memcpy(video_buf, gb->gpu->data, 160 * 144 * 4);
+	memcpy(audio_buf, gb->apu->data, audio_buf_size);
 }

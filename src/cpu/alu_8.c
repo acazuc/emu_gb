@@ -32,7 +32,7 @@ INSTR_DEF(dec_##r) \
 			cpu->regs.r--; \
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.r); \
 			CPU_SET_FLAG_N(cpu, 1); \
-			cpu_update_hflag8(cpu, v, cpu->regs.r, 1); \
+			cpu_update_hflag8(cpu, v, cpu->regs.r, 0); \
 			break; \
 		} \
 	} \
@@ -644,8 +644,8 @@ INSTR_DEF(cpl)
 	{
 		case 0:
 			cpu->regs.a ^= 0xFF;
-			CPU_SET_FLAG_N(cpu, 0);
-			CPU_SET_FLAG_H(cpu, 0);
+			CPU_SET_FLAG_N(cpu, 1);
+			CPU_SET_FLAG_H(cpu, 1);
 			break;
 	}
 	cpu->regs.pc += 1;

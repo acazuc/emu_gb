@@ -189,7 +189,7 @@ bool retro_load_game(const struct retro_game_info *info)
 
 	gb_del(g_gb);
 	g_gb = gb_new(info->data, info->size);
-	if (g_gb == NULL)
+	if (!g_gb)
 	{
 		log_cb(RETRO_LOG_ERROR, "can't create gb\n");
 		return false;

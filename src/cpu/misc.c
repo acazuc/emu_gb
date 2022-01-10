@@ -27,7 +27,7 @@ INSTR_DEF(ei)
 	switch (count)
 	{
 		case 0:
-			cpu->ime = true;
+			cpu->ei = 2;
 			break;
 	}
 	cpu->regs.pc++;

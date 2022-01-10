@@ -17,3 +17,8 @@ void apu_del(apu_t *apu)
 		return;
 	free(apu);
 }
+
+void apu_clock(apu_t *apu)
+{
+	(void)apu;
+}

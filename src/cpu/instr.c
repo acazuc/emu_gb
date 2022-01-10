@@ -196,6 +196,12 @@ INSTR_DECL_OP_N8(bit);
 INSTR_DECL_OP_N8(res);
 INSTR_DECL_OP_N8(set);
 
+INSTR_DECL(int_40);
+INSTR_DECL(int_48);
+INSTR_DECL(int_50);
+INSTR_DECL(int_58);
+INSTR_DECL(int_60);
+
 INSTR_DEF(unset)
 {
 	(void)count;
@@ -516,4 +522,13 @@ cpu_instr_t g_cpu_cb_instructions[256] =
 	TBL_OP_N(set, 7),
 
 #undef TBL_OP_N
+};
+
+cpu_instr_t g_cpu_int_instructions[5] =
+{
+	{"int 40", INSTR_NAME(int_40)},
+	{"int 48", INSTR_NAME(int_48)},
+	{"int 60", INSTR_NAME(int_50)},
+	{"int 58", INSTR_NAME(int_58)},
+	{"int 60", INSTR_NAME(int_60)},
 };

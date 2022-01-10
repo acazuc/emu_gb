@@ -9,6 +9,8 @@
 typedef struct gpu_s
 {
 	uint8_t data[144 * 160 * 4];
+	uint8_t y;
+	uint8_t x;
 	mem_t *mem;
 } gpu_t;
 

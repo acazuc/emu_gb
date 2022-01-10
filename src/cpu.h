@@ -39,7 +39,7 @@ typedef union cpu_regs_s
 	{
 		uint16_t pc;
 		uint16_t sp;
-		uint16_t pad16; /* a + pad */
+		uint16_t af;
 		uint16_t bc;
 		uint16_t de;
 		uint16_t hl;
@@ -77,6 +77,7 @@ typedef struct cpu_s
 	cpu_instr_t *instr;
 	mem_t *mem;
 	bool ime;
+	uint8_t ei;
 } cpu_t;
 
 cpu_t *cpu_new(mem_t *mem);

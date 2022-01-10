@@ -43,8 +43,8 @@ INSTR_DEF(add_hl_##rr) \
 			uint16_t v = cpu->regs.hl; \
 			cpu->regs.hl += cpu->regs.rr; \
 			CPU_SET_FLAG_N(cpu, 0); \
-			cpu_update_hflag16(cpu, v, cpu->regs.rr, 1); \
-			cpu_update_cflag16(cpu, v, cpu->regs.rr, 1); \
+			cpu_update_hflag16(cpu, v, cpu->regs.hl, 1); \
+			cpu_update_cflag16(cpu, v, cpu->regs.hl, 1); \
 			break; \
 		} \
 	} \
@@ -69,15 +69,16 @@ INSTR_DEF(add_sp_n)
 		case 0:
 			return false;
 		case 1:
+			cpu->instr_tmp.u16[1] = cpu->regs.sp;
 			cpu->instr_tmp.u16[0] = cpu->regs.sp + (int8_t)mem_get8(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			cpu->regs.sp = (cpu->regs.sp & 0xFF00) | (cpu->instr_tmp.u16[0] & 0xFF);
+			cpu->regs.sp = (cpu->regs.sp & 0xFF00) | (cpu->instr_tmp.u16[0] & 0x00FF);
 			return false;
 		case 3:
 		{
-			uint16_t v = cpu->regs.sp;
-			cpu->regs.sp = (cpu->regs.sp & 0xFF) | (cpu->instr_tmp.u16[0] & 0xFF00);
+			uint16_t v = cpu->instr_tmp.u16[1];
+			cpu->regs.sp = (cpu->regs.sp & 0x00FF) | (cpu->instr_tmp.u16[0] & 0xFF00);
 			CPU_SET_FLAG_Z(cpu, 0);
 			CPU_SET_FLAG_N(cpu, 0);
 			cpu_update_hflag16(cpu, v, cpu->regs.sp, 1);

@@ -33,49 +33,54 @@ static void next_instruction(cpu_t *cpu)
 	cpu->instr_cycle = 0;
 }
 
-static void handle_interrupt(cpu_t *cpu)
+static bool handle_interrupt(cpu_t *cpu)
 {
 	if (!cpu->ime)
-		return;
+		return false;
 	uint8_t reg_if = mem_get8(cpu->mem, MEM_REG_IF);
 	if (!reg_if)
-		return;
-	uint8_t ie = reg_if & mem_get8(cpu->mem, MEM_REG_IE);
-	if (!ie)
-		return;
-	for (uint8_t i = 0; i < 8; ++i)
+		return false;
+	uint8_t ie = mem_get8(cpu->mem, MEM_REG_IE);
+	if (!(ie & reg_if))
+		return false;
+	for (uint8_t i = 0; i < 5; ++i)
 	{
-		if (!(ie & (1 << i)))
+		uint8_t mask = 1 << i;
+		if (!((reg_if & ie) & mask))
 			continue;
-		mem_set8(cpu->mem, --cpu->regs.sp, cpu->regs.pc);
-		mem_set8(cpu->mem, --cpu->regs.sp, cpu->regs.pc >> 8);
-		mem_set8(cpu->mem, MEM_REG_IF, ie & ~(1 << i));
-		cpu->regs.pc = 0x40 + 8 * i;
-		cpu->ime = false;
+		mem_set8(cpu->mem, MEM_REG_IF, reg_if & ~mask);
+		cpu->instr = &g_cpu_int_instructions[i];
+		cpu->instr_cycle = 0;
+		return true;
 	}
+	return false;
 }
 
-static size_t decode_instr_param(cpu_t *cpu, char *cur, size_t len, const char *s, int l, int n)
+static size_t decode_instr_param(cpu_t *cpu, char *cur, size_t len, const char *s, int l, int *n)
 {
 	if (l == 2 && !strncmp(s, "nn", l))
 	{
-		snprintf(cur, len, "%%%04x", mem_get16(cpu->mem, cpu->regs.pc + n));
+		snprintf(cur, len, "%%%04x", mem_get16(cpu->mem, cpu->regs.pc + *n));
+		*n += 2;
 		return 5;
 	}
 	else if (l == 1 && !strncmp(s, "n", l))
 	{
-		snprintf(cur, len, "%%%02x", mem_get8(cpu->mem, cpu->regs.pc + n));
+		snprintf(cur, len, "%%%02x", mem_get8(cpu->mem, cpu->regs.pc + *n));
+		*n += 1;
 		return 3;
 	}
 	else if (l == 4 && !strncmp(s, "(nn)", l))
 	{
-		snprintf(cur, len, "(%%%04x)", mem_get16(cpu->mem, cpu->regs.pc + n));
+		snprintf(cur, len, "(%%%04x)", mem_get16(cpu->mem, cpu->regs.pc + *n));
+		*n += 2;
 		return 7;
 	}
 	else if (l == 6 && !strncmp(s, "(ff+n)", l))
 	{
-		snprintf(cur, len, "(ff00+%%%02x)", mem_get8(cpu->mem, cpu->regs.pc + n));
-		return 10;
+		snprintf(cur, len, "(%%ff00+%%%02x)", mem_get8(cpu->mem, cpu->regs.pc + *n));
+		*n += 1;
+		return 11;
 	}
 	else
 	{
@@ -103,17 +108,19 @@ static void print_instr(cpu_t *cpu)
 		tmp = strstr(name, ", ");
 		if (tmp != NULL)
 		{
-			size_t r = decode_instr_param(cpu, cur, len, name, tmp - name, 1);
+			int n = 1;
+			size_t r = decode_instr_param(cpu, cur, len, name, tmp - name, &n);
 			cur += r;
 			len -= r;
 			snprintf(cur, len, ", ");
 			cur += 2;
 			len -= 2;
-			r = decode_instr_param(cpu, cur, len, tmp + 2, strlen(tmp) - 2, 2);
+			r = decode_instr_param(cpu, cur, len, tmp + 2, strlen(tmp) - 2, &n);
 		}
 		else
 		{
-			decode_instr_param(cpu, cur, len, name, strlen(name), 1);
+			int n = 1;
+			decode_instr_param(cpu, cur, len, name, strlen(name), &n);
 		}
 	}
 	else
@@ -141,10 +148,9 @@ static void print_instr(cpu_t *cpu)
 static void cpu_cycle(cpu_t *cpu)
 {
 	static bool debug = false;
+
 	if (cpu->regs.pc == 0x100)
 		debug = true;
-	if (cpu->regs.pc == 0x38)
-		debug = false;
 
 #if 0
 	next_instruction(cpu);
@@ -159,8 +165,19 @@ static void cpu_cycle(cpu_t *cpu)
 	bool end = cpu->instr->fn(cpu, cpu->instr_cycle);
 	if (end)
 	{
-		handle_interrupt(cpu);
-		next_instruction(cpu);
+		switch (cpu->ei)
+		{
+			case 0:
+				break;
+			case 1:
+				cpu->ime = true;
+				/* FALLTHROUGH */
+			default:
+				cpu->ei--;
+				break;
+		}
+		if (!handle_interrupt(cpu))
+			next_instruction(cpu);
 		if (debug)
 			print_instr(cpu);
 	}
@@ -183,11 +200,11 @@ void cpu_update_hflag16(cpu_t *cpu, uint16_t v1, uint16_t v2, uint8_t add)
 {
 	if (add)
 	{
-		CPU_SET_FLAG_C(cpu, v1 < v2 || (v1 & 0xF0) != (v2 & 0xF0));
+		CPU_SET_FLAG_H(cpu, v1 > v2 || (v1 & 0xF0) != (v2 & 0xF0));
 	}
 	else
 	{
-		CPU_SET_FLAG_C(cpu, v1 > v2 || (v1 & 0xF0) != (v2 & 0xF0));
+		CPU_SET_FLAG_H(cpu, v1 <v2 || (v1 & 0xF0) != (v2 & 0xF0));
 	}
 }
 
@@ -195,11 +212,11 @@ void cpu_update_hflag8(cpu_t *cpu, uint8_t v1, uint8_t v2, uint8_t add)
 {
 	if (add)
 	{
-		CPU_SET_FLAG_C(cpu, v1 < v2 || (v1 & 0xF0) != (v2 & 0xF0));
+		CPU_SET_FLAG_H(cpu, v1 > v2 || (v1 & 0xF0) != (v2 & 0xF0));
 	}
 	else
 	{
-		CPU_SET_FLAG_C(cpu, v1 > v2 || (v1 & 0xF0) != (v2 & 0xF0));
+		CPU_SET_FLAG_H(cpu, v1 < v2 || (v1 & 0xF0) != (v2 & 0xF0));
 	}
 }
 
@@ -207,11 +224,11 @@ void cpu_update_cflag16(cpu_t *cpu, uint16_t v1, uint16_t v2, uint8_t add)
 {
 	if (add)
 	{
-		CPU_SET_FLAG_C(cpu, v1 < v2);
+		CPU_SET_FLAG_C(cpu, v1 > v2);
 	}
 	else
 	{
-		CPU_SET_FLAG_C(cpu, v1 > v2);
+		CPU_SET_FLAG_C(cpu, v1 < v2);
 	}
 }
 
@@ -219,10 +236,10 @@ void cpu_update_cflag8(cpu_t *cpu, uint8_t v1, uint8_t v2, uint8_t add)
 {
 	if (add)
 	{
-		CPU_SET_FLAG_C(cpu, v1 < v2);
+		CPU_SET_FLAG_C(cpu, v1 > v2);
 	}
 	else
 	{
-		CPU_SET_FLAG_C(cpu, v1 > v2);
+		CPU_SET_FLAG_C(cpu, v1 < v2);
 	}
 }

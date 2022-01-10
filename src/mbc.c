@@ -13,6 +13,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 	if ((size_t)((32 * 1024) << ((uint8_t*)data)[0x148]) != len)
 		return NULL;
 
+	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 2;;
 	uint8_t rambanks;
 	switch (((uint8_t*)data)[0x149])
 	{
@@ -156,7 +157,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 	if (mbc == NULL)
 		return NULL;
 
-	mbc->data = malloc(len);
+	mbc->data = calloc(len, 1);
 	if (mbc->data == NULL)
 	{
 		free(mbc);
@@ -166,7 +167,8 @@ mbc_t *mbc_new(const void *data, size_t len)
 	memcpy(mbc->data, data, len);
 	mbc->size = len;
 	mbc->rambanksnb = rambanks;
-	mbc->rambanks = malloc(0x8000 * rambanks);
+	mbc->rambanks = calloc(1, 0x8000 * rambanks);
+	mbc->rombanksnb = rombanks;
 	mbc->type = mbctype;
 	mbc->options = options;
 	if (!mbc->rambanks)
@@ -218,16 +220,49 @@ static void rom0_set(mem_ref_t *ref, uint8_t v)
 		case MBC1:
 			if (ref->addr < 0x2000)
 				mbc->ramenabled = ((v & 0x0F) == 0xA);
+			else
+				mbc->rombank = (mbc->rombank & 0xE0) | (v & 0x1F);
 			return;
 	}
 }
 
 static uint8_t romn_get(mem_ref_t *ref)
 {
+	mbc_t *mbc = (mbc_t*)ref->udata;
+	switch (mbc->type)
+	{
+		case MBC_ROM:
+			if (ref->addr < mbc->size)
+				return mbc->data[ref->addr];
+			return 0;
+		case MBC1:
+		case MBC2:
+		case MBC3:
+		case MBC5:
+		case MBC6:
+		case MBC7:
+		case MBC_HUC1:
+		case MBC_HUC3:
+		case MBC_MMM1:
+		case MBC_CAM:
+		case MBC_TAMA5:
+			if (ref->addr < mbc->size)
+				return mbc->data[ref->addr + 0x4000 * (mbc->rombank & mbc->rombanksnb)];
+			return 0;
+	}
+	return 0;
 }
 
 static void romn_set(mem_ref_t *ref, uint8_t v)
 {
+	mbc_t *mbc = (mbc_t*)ref->udata;
+	switch (mbc->type)
+	{
+		case MBC_ROM:
+			return;
+		case MBC1:
+			return;
+	}
 }
 
 static uint8_t ram_get(mem_ref_t *ref)

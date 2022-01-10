@@ -64,11 +64,44 @@ static void oam_set(mem_ref_t *ref, uint8_t v)
 	(void)v;
 }
 
+static uint8_t reg_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, ref->addr);
+}
+
+static uint8_t joyp_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	if (mem_get_reg(mem, MEM_REG_JOYP) & 0x10)
+		return 0x10 | ((~mem->joyp) & 0xF);
+	return ~(mem->joyp >> 4);
+}
+
+static void joyp_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_JOYP, (mem_get_reg(mem, MEM_REG_JOYP) & 0x0F) | (v & 0x10));
+}
+
+static void stat_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_JOYP, (mem_get_reg(mem, MEM_REG_JOYP) & 0x03) | (v & 0xF40));
+}
+
+static void div_set(mem_ref_t *ref, uint8_t v)
+{
+	(void)v;
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_DIV, 0);
+}
+
 static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
 {
 	if (addr < 0x100)
 	{
-		if (mem->highram[MEM_REG_BOOT - 0xFF00])
+		if (mem_get_reg(mem, MEM_REG_BOOT))
 			return mbc_get_rom0(mem->mbc, addr);
 		else
 			return MEM_REF_PTR(&(&_binary_dmgbios_bin_start)[addr], simple_get, empty_set);
@@ -78,13 +111,13 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
 		return mbc_get_rom0(mem->mbc, addr);
 
 	if (addr < 0x8000)
-		return mbc_get_romn(mem->mbc, addr - 0x4000);
+		return mbc_get_romn(mem->mbc, addr);
 
 	if (addr < 0xA000) /* vram */
 		return MEM_REF_PTR(&mem->vram[addr - 0x8000], simple_get, simple_set);
 
 	if (addr < 0xC000) /* external ram */
-		return mbc_get_ram(mem->mbc, addr - 0xA000);
+		return mbc_get_ram(mem->mbc, addr);
 
 	if (addr < 0xD000) /* work ram bank 0 */
 		return MEM_REF_PTR(&mem->workram0[addr - 0xC000], simple_get, simple_set);
@@ -104,6 +137,17 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
 	if (addr < 0xFF00) /* unmapped */
 		return MEM_REF_PTR(NULL, empty_get, empty_set);
 
+	switch (addr)
+	{
+		case MEM_REG_JOYP:
+			return MEM_REF_ADDR(0, joyp_get, joyp_set, mem);
+		case MEM_REG_LY:
+			return MEM_REF_ADDR(addr, reg_get, empty_set, mem);
+		case MEM_REG_STAT:
+			return MEM_REF_ADDR(addr, reg_get, stat_set, mem);
+		case MEM_REG_DIV:
+			return MEM_REF_ADDR(addr, reg_get, div_set, mem);
+	}
 	return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
 }
 

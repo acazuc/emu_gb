@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define MEM_REG_JOYP 0xFF00
+#define MEM_REG_DIV  0xFF04
 #define MEM_REG_IF   0xFF0F
 #define MEM_REG_LCDC 0xFF40
 #define MEM_REG_STAT 0xFF41
@@ -27,6 +28,7 @@ typedef struct mem_s
 	uint8_t workram1[0x1000];
 	uint8_t oam[0xA0];
 	uint8_t highram[0x100];
+	uint8_t joyp;
 	mbc_t *mbc;
 } mem_t;
 
@@ -52,6 +54,8 @@ struct mem_ref_s
 
 mem_t *mem_new(mbc_t *mbc);
 void mem_del(mem_t *mem);
+
+void mem_set_joyp(mem_t *mem, uint8_t joyp);
 
 uint8_t mem_get_reg(mem_t *mem, uint16_t addr);
 void    mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v);

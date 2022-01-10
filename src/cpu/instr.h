@@ -14,6 +14,7 @@ typedef struct cpu_instr_s
 
 extern cpu_instr_t g_cpu_instructions[256];
 extern cpu_instr_t g_cpu_cb_instructions[256];
+extern cpu_instr_t g_cpu_int_instructions[5];
 
 #define INSTR_NAME(name) \
 	cpu_instr_##name

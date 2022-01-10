@@ -34,7 +34,7 @@ INSTR_DEF(ld_nn_sp)
 			cpu->instr_tmp.u16[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			cpu->instr_tmp.u16[0] |= mem_get8(cpu->mem, cpu->regs.pc + 1) << 8;
+			cpu->instr_tmp.u16[0] |= mem_get8(cpu->mem, cpu->regs.pc + 2) << 8;
 			return false;
 		case 3:
 			mem_set8(cpu->mem, cpu->instr_tmp.u16[0], cpu->regs.sp);
