@@ -67,6 +67,7 @@ enum cpu_state
 {
 	CPU_RUN,
 	CPU_HALT,
+	CPU_STOP,
 };
 
 typedef struct cpu_s

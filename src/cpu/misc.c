@@ -10,15 +10,24 @@ INSTR_DEF(nop)
 
 INSTR_DEF(stop)
 {
-	(void)count;
+	switch (count)
+	{
+		case 0:
+			cpu->state = CPU_STOP;
+			break;
+	}
 	cpu->regs.pc += 2;
 	return true;
 }
 
 INSTR_DEF(halt)
 {
-	(void)count;
-	cpu->state = CPU_HALT;
+	switch (count)
+	{
+		case 0:
+			cpu->state = CPU_HALT;
+			break;
+	}
 	cpu->regs.pc++;
 	return true;
 }
