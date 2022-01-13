@@ -139,7 +139,7 @@ INSTR_DEF(adc_a_##r) \
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a); \
 			CPU_SET_FLAG_N(cpu, 0); \
 			CPU_SET_FLAG_H(cpu, ((v & 0xf) + (add & 0xf) + c) & 0x10); \
-			CPU_SET_FLAG_C(cpu, v > cpu->regs.a); \
+			CPU_SET_FLAG_C(cpu, c ? (v >= cpu->regs.a) : (v > cpu->regs.a)); \
 			break; \
 		} \
 	} \
@@ -170,7 +170,7 @@ INSTR_DEF(adc_a_hl)
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, ((v & 0xf) + (add & 0xf) + c) & 0x10);
-			CPU_SET_FLAG_C(cpu, v > cpu->regs.a);
+			CPU_SET_FLAG_C(cpu, c ? (v >= cpu->regs.a) : (v > cpu->regs.a));
 			break;
 		}
 	}
@@ -193,7 +193,7 @@ INSTR_DEF(adc_a_n)
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, ((v & 0xf) + (add & 0xf) + c) & 0x10);
-			CPU_SET_FLAG_C(cpu, v > cpu->regs.a);
+			CPU_SET_FLAG_C(cpu, c ? (v >= cpu->regs.a) : (v > cpu->regs.a));
 			break;
 		}
 	}
@@ -288,7 +288,7 @@ INSTR_DEF(sbc_a_##r) \
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a); \
 			CPU_SET_FLAG_N(cpu, 1); \
 			CPU_SET_FLAG_H(cpu, (v & 0xf) < (sub & 0xf) + c); \
-			CPU_SET_FLAG_C(cpu, cpu->regs.a > v); \
+			CPU_SET_FLAG_C(cpu, c ? (cpu->regs.a >= v) : (cpu->regs.a > v)); \
 			break; \
 		} \
 	} \
@@ -319,7 +319,7 @@ INSTR_DEF(sbc_a_hl)
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 1);
 			CPU_SET_FLAG_H(cpu, (v & 0xf) < (sub & 0xf) + c);
-			CPU_SET_FLAG_C(cpu, cpu->regs.a > v);
+			CPU_SET_FLAG_C(cpu, c ? (cpu->regs.a >= v) : (cpu->regs.a > v));
 			break;
 		}
 	}
@@ -342,7 +342,7 @@ INSTR_DEF(sbc_a_n)
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 1);
 			CPU_SET_FLAG_H(cpu, (v & 0xf) < (sub & 0xf) + c);
-			CPU_SET_FLAG_C(cpu, cpu->regs.a > v);
+			CPU_SET_FLAG_C(cpu, c ? (cpu->regs.a >= v) : (cpu->regs.a > v));
 			break;
 		}
 	}
@@ -651,6 +651,25 @@ INSTR_DEF(daa)
 	switch (count)
 	{
 		case 0:
+			if (CPU_GET_FLAG_N(cpu))
+			{
+				if (CPU_GET_FLAG_H(cpu))
+					cpu->regs.a -= 0x06;
+				if (CPU_GET_FLAG_C(cpu))
+					cpu->regs.a -= 0x60;
+			}
+			else
+			{
+				uint16_t v = cpu->regs.a;
+				if (CPU_GET_FLAG_H(cpu) || (v & 0x0f) > 0x09)
+					v += 0x06;
+				if (CPU_GET_FLAG_C(cpu) || v > 0x9f)
+					v += 0x60;
+				if (v & 0x100)
+					CPU_SET_FLAG_C(cpu, 1);
+				cpu->regs.a = v;
+			}
+			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_H(cpu, 0);
 			break;
 	}

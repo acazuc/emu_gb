@@ -194,6 +194,8 @@ bool retro_load_game(const struct retro_game_info *info)
 
 void retro_unload_game(void)
 {
+	gb_del(g_gb);
+	g_gb = NULL;
 }
 
 unsigned retro_get_region(void)

@@ -93,7 +93,7 @@ INSTR_DEF(rlc_##r) \
 			uint8_t v = cpu->regs.r; \
 			uint8_t newv = (v << 1) | (v >> 7); \
 			cpu->regs.r = newv; \
-			CPU_SET_FLAG_Z(cpu, !(v & 0x7F)); \
+			CPU_SET_FLAG_Z(cpu, !newv); \
 			CPU_SET_FLAG_N(cpu, 0); \
 			CPU_SET_FLAG_H(cpu, 0); \
 			CPU_SET_FLAG_C(cpu, v & 0x80); \
@@ -128,7 +128,7 @@ INSTR_DEF(rlc_hl)
 			uint8_t v = cpu->instr_tmp.u8[0];
 			uint8_t newv = (v << 1) | (v >> 7);
 			mem_set8(cpu->mem, cpu->regs.hl, newv);
-			CPU_SET_FLAG_Z(cpu, !(v & 0x7F));
+			CPU_SET_FLAG_Z(cpu, !newv);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 0);
 			CPU_SET_FLAG_C(cpu, v & 0x80);
