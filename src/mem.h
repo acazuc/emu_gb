@@ -71,6 +71,9 @@ void mem_dmatransfer(mem_t *mem);
 uint8_t mem_get_reg(mem_t *mem, uint16_t addr);
 void    mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v);
 
+uint8_t mem_get_vram(mem_t *mem, uint16_t addr);
+uint8_t mem_get_oam(mem_t *mem, uint16_t addr);
+
 uint8_t mem_get8(mem_t *mem, uint16_t addr);
 void    mem_set8(mem_t *mem, uint16_t addr, uint8_t v);
 

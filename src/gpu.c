@@ -27,8 +27,8 @@ void gpu_del(gpu_t *gpu)
 
 static void render_tile(gpu_t *gpu, uint16_t addr, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t bgp)
 {
-	uint8_t coloridx = (((mem_get8(gpu->mem, addr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
-	                 | (((mem_get8(gpu->mem, addr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
+	uint8_t coloridx = (((mem_get_vram(gpu->mem, addr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
+	                 | (((mem_get_vram(gpu->mem, addr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	static const uint8_t values[4] = {0xFF, 0xAA, 0x55, 0x00};
 	uint8_t color = values[(bgp >> (coloridx << 1)) & 0x3];
 	memset(&gpu->data[(y * 160 + x) * 4], color, 4);
@@ -50,7 +50,7 @@ static void render_background(gpu_t *gpu, uint8_t y)
 	{
 		uint8_t rx = scx + x;
 		uint8_t bx = rx % 8;
-		uint8_t charcode = mem_get8(gpu->mem, baseaddr + rx / 8 + ry / 8 * 32);
+		uint8_t charcode = mem_get_vram(gpu->mem, baseaddr + rx / 8 + ry / 8 * 32);
 		uint16_t addr = charaddr + (haddr ? charcode * 16 : (int8_t)charcode * 16);
 		render_tile(gpu, addr, x, y, bx, by, bgp);
 	}
@@ -74,7 +74,7 @@ static void render_window(gpu_t *gpu, uint8_t y)
 		uint8_t ry = y - wy;
 		uint8_t bx = rx % 8;
 		uint8_t by = ry % 8;
-		uint16_t charcode = mem_get8(gpu->mem, baseaddr + ((rx - bx) + (ry - by) * 32) / 8);
+		uint16_t charcode = mem_get_vram(gpu->mem, baseaddr + ((rx - bx) + (ry - by) * 32) / 8);
 		uint16_t addr = charaddr + (haddr ? charcode * 16 : (int8_t)charcode * 16);
 		render_tile(gpu, addr, x, y, bx, by, bgp);
 	}
@@ -94,8 +94,8 @@ static void render_object(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t 
 	if (height16)
 		charcode &= ~1;
 	uint16_t charaddr = 0x8000 + charcode * 16;
-	uint8_t pixel = (((mem_get8(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
-	              | (((mem_get8(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
+	uint8_t pixel = (((mem_get_vram(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
+	              | (((mem_get_vram(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	if (!pixel)
 		return;
 	if ((gpu->priorities[x] || prio) && gpu->hasprinted[x])
@@ -117,12 +117,12 @@ static void render_objects(gpu_t *gpu, uint8_t y)
 	for (uint8_t i = 0; i < 40; ++i)
 	{
 		uint16_t addr = 0xFE00 + 4 * i;
-		uint8_t cy = mem_get8(gpu->mem, addr + 0);
+		uint8_t cy = mem_get_oam(gpu->mem, addr + 0);
 		if (cy == 0 || cy >= 160 || cy > y + 16 || cy + (height16 ? 16 : 8) <= y + 16)
 			continue;
-		uint8_t cx = mem_get8(gpu->mem, addr + 1);
-		uint8_t charcode = mem_get8(gpu->mem, addr + 2);
-		uint8_t cattr = mem_get8(gpu->mem, addr + 3);
+		uint8_t cx = mem_get_oam(gpu->mem, addr + 1);
+		uint8_t charcode = mem_get_oam(gpu->mem, addr + 2);
+		uint8_t cattr = mem_get_oam(gpu->mem, addr + 3);
 		for (uint8_t x = 0; x < 8; ++x)
 		{
 			uint8_t tx = cx + x;
@@ -152,7 +152,7 @@ void gpu_render_line(gpu_t *gpu, uint8_t y)
 	if (mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 5))
 		render_window(gpu, y);
 
-	if (mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 1))
+	if (!gpu->mem->dmatransfer && mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 1))
 		render_objects(gpu, y);
 
 }

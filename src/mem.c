@@ -187,6 +187,20 @@ void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
 	mem->highram[addr - 0xFF00] = v;
 }
 
+uint8_t mem_get_vram(mem_t *mem, uint16_t addr)
+{
+	if (mem->dmatransfer)
+		return 0;
+	return mem->vram[addr - 0x8000];
+}
+
+uint8_t mem_get_oam(mem_t *mem, uint16_t addr)
+{
+	if (mem->dmatransfer)
+		return 0;
+	return mem->oam[addr - 0xFE00];
+}
+
 uint8_t mem_get8(mem_t *mem, uint16_t addr)
 {
 	mem_ref_t ref = mem_u8(mem, addr, false);

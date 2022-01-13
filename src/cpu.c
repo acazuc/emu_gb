@@ -40,10 +40,10 @@ static void next_instruction(cpu_t *cpu)
 
 static bool handle_interrupt(cpu_t *cpu)
 {
-	uint8_t reg_if = mem_get8(cpu->mem, MEM_REG_IF);
+	uint8_t reg_if = mem_get_reg(cpu->mem, MEM_REG_IF);
 	if (!reg_if)
 		return false;
-	uint8_t ie = mem_get8(cpu->mem, MEM_REG_IE);
+	uint8_t ie = mem_get_reg(cpu->mem, MEM_REG_IE);
 	if (!(ie & reg_if))
 		return false;
 	cpu->state = CPU_RUN;
@@ -54,7 +54,7 @@ static bool handle_interrupt(cpu_t *cpu)
 		uint8_t mask = 1 << i;
 		if (!((reg_if & ie) & mask))
 			continue;
-		mem_set8(cpu->mem, MEM_REG_IF, reg_if & ~mask);
+		mem_set_reg(cpu->mem, MEM_REG_IF, reg_if & ~mask);
 		cpu->instr = &g_cpu_int_instructions[i];
 		cpu->instr_cycle = 0;
 		return true;

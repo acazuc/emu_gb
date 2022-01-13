@@ -145,7 +145,6 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t audio_b
 
 	if (gb->mem->joyp != joypad)
 	{
-		fprintf(stderr, "joypad: %x\n", joypad);
 		gb->mem->joyp = joypad;
 		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 4));
 	}
