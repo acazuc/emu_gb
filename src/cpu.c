@@ -70,6 +70,13 @@ static size_t decode_instr_param(cpu_t *cpu, char *cur, size_t len, const char *
 		*n += 1;
 		return 3;
 	}
+	else if (l == 1 && !strncmp(s, "d", l))
+	{
+		int8_t v = (int8_t)mem_get8(cpu->mem, cpu->regs.pc + *n);
+		snprintf(cur, len, "%c%%%02x", v < 0 ? '-' : '+', v < 0 ? -v : v);
+		*n += 1;
+		return 4;
+	}
 	else if (l == 4 && !strncmp(s, "(nn)", l))
 	{
 		snprintf(cur, len, "(%%%04x)", mem_get16(cpu->mem, cpu->regs.pc + *n));
@@ -184,6 +191,12 @@ static void cpu_cycle(cpu_t *cpu)
 	else
 	{
 		cpu->instr_cycle++;
+	}
+
+	if (cpu->mem->dmatransfer)
+	{
+		mem_dmatransfer(cpu->mem);
+		cpu->mem->dmatransfer--;
 	}
 }
 

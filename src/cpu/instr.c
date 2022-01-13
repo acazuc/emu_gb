@@ -239,7 +239,7 @@ cpu_instr_t g_cpu_instructions[256] =
 	{"ld d, n"    , INSTR_NAME(ld_d_n)},
 	{"rla"        , INSTR_NAME(rla)},
 	/* 0x18 */
-	{"jr dd"      , INSTR_NAME(jr_dd)},
+	{"jr d"       , INSTR_NAME(jr_dd)},
 	{"add hl, de" , INSTR_NAME(add_hl_de)},
 	{"ld a, (de)" , INSTR_NAME(ld_a_de)},
 	{"dec de"     , INSTR_NAME(dec_de)},
@@ -248,7 +248,7 @@ cpu_instr_t g_cpu_instructions[256] =
 	{"ld e, n"    , INSTR_NAME(ld_e_n)},
 	{"rra"        , INSTR_NAME(rra)},
 	/* 0x20 */
-	{"jr nz, n"   , INSTR_NAME(jr_nz_n)},
+	{"jr nz, d"   , INSTR_NAME(jr_nz_n)},
 	{"ld hl, nn"  , INSTR_NAME(ld_hl_nn)},
 	{"ldi (hl), a", INSTR_NAME(ldi_hl_a)},
 	{"inc hl"     , INSTR_NAME(inc_hl)},
@@ -257,7 +257,7 @@ cpu_instr_t g_cpu_instructions[256] =
 	{"ld h, n"    , INSTR_NAME(ld_h_n)},
 	{"daa"        , INSTR_NAME(daa)},
 	/* 0x28 */
-	{"jr z, n"    , INSTR_NAME(jr_z_n)},
+	{"jr z, d"    , INSTR_NAME(jr_z_n)},
 	{"add hl, hl" , INSTR_NAME(add_hl_hl)},
 	{"ldi a, (hl)", INSTR_NAME(ldi_a_hl)},
 	{"dec hl"     , INSTR_NAME(dec_hl)},
@@ -266,7 +266,7 @@ cpu_instr_t g_cpu_instructions[256] =
 	{"ld l, n"    , INSTR_NAME(ld_l_n)},
 	{"cpl"        , INSTR_NAME(cpl)},
 	/* 0x30 */
-	{"jr nc, n"   , INSTR_NAME(jr_nc_n)},
+	{"jr nc, d"   , INSTR_NAME(jr_nc_n)},
 	{"ld sp, nn"  , INSTR_NAME(ld_sp_nn)},
 	{"ldd (hl), a", INSTR_NAME(ldd_hl_a)},
 	{"inc sp"     , INSTR_NAME(inc_sp)},
@@ -275,7 +275,7 @@ cpu_instr_t g_cpu_instructions[256] =
 	{"ld (hl), n" , INSTR_NAME(ld_rhl_n)},
 	{"scf"        , INSTR_NAME(scf)},
 	/* 0x38 */
-	{"jr c, n"    , INSTR_NAME(jr_c_n)},
+	{"jr c, d"    , INSTR_NAME(jr_c_n)},
 	{"add hl, sp" , INSTR_NAME(add_hl_sp)},
 	{"ldd a, (hl)", INSTR_NAME(ldd_a_hl)},
 	{"dec sp"     , INSTR_NAME(dec_sp)},

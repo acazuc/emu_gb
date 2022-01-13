@@ -1,0 +1,23 @@
+# Software Information
+display_name = "Nintendo - Game Boy / Color (emu_gb)"
+authors = "acazuc"
+supported_extensions = "dmg|bin|gb|gbc"
+corename = "emu_gb"
+display_version = "v0.1.0"
+categories = "Emulator"
+license = "BSDv2"
+permissions = ""
+
+# Hardware Information
+manufacturer = "Nintendo"
+systemname = "Game Boy/Game Boy Color"
+systemid = "game_boy"
+
+# Libretro Features
+database = "Nintendo - Game Boy|Nintendo - Game Boy Color"
+supports_no_game = "false"
+
+# Firmware / BIOS
+firmware_count = 0
+
+description = "Simple Game Boy / Color emulator"

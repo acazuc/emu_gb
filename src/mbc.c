@@ -13,7 +13,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 	if ((size_t)((32 * 1024) << ((uint8_t*)data)[0x148]) != len)
 		return NULL;
 
-	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 2;;
+	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 2;
 	uint8_t rambanks;
 	switch (((uint8_t*)data)[0x149])
 	{

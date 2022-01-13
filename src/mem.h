@@ -1,6 +1,7 @@
 #ifndef MEM_H
 #define MEM_H
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #define MEM_REG_JOYP 0xFF00
@@ -12,7 +13,10 @@
 #define MEM_REG_SCX  0xFF43
 #define MEM_REG_LY   0xFF44
 #define MEM_REG_LYC  0xFF45
+#define MEM_REG_DMA  0xFF46
 #define MEM_REG_BGP  0xFF47
+#define MEM_REG_OBP0 0xFF48
+#define MEM_REG_OBP1 0xFF49
 #define MEM_REG_WY   0xFF4A
 #define MEM_REG_WX   0xFF4B
 #define MEM_REG_BOOT 0xFF50
@@ -29,6 +33,7 @@ typedef struct mem_s
 	uint8_t oam[0xA0];
 	uint8_t highram[0x100];
 	uint8_t joyp;
+	uint8_t dmatransfer;
 	mbc_t *mbc;
 } mem_t;
 
@@ -56,6 +61,8 @@ mem_t *mem_new(mbc_t *mbc);
 void mem_del(mem_t *mem);
 
 void mem_set_joyp(mem_t *mem, uint8_t joyp);
+
+void mem_dmatransfer(mem_t *mem);
 
 uint8_t mem_get_reg(mem_t *mem, uint16_t addr);
 void    mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v);

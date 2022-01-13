@@ -52,18 +52,6 @@ static void empty_set(mem_ref_t *ref, uint8_t v)
 	(void)v;
 }
 
-static uint8_t oam_get(mem_ref_t *ref)
-{
-	(void)ref;
-	return 0;
-}
-
-static void oam_set(mem_ref_t *ref, uint8_t v)
-{
-	(void)ref;
-	(void)v;
-}
-
 static uint8_t reg_get(mem_ref_t *ref)
 {
 	mem_t *mem = (mem_t*)ref->udata;
@@ -73,21 +61,25 @@ static uint8_t reg_get(mem_ref_t *ref)
 static uint8_t joyp_get(mem_ref_t *ref)
 {
 	mem_t *mem = (mem_t*)ref->udata;
-	if (mem_get_reg(mem, MEM_REG_JOYP) & 0x10)
-		return 0x10 | ((~mem->joyp) & 0xF);
-	return ~(mem->joyp >> 4);
+	uint8_t joyp = mem_get_reg(mem, MEM_REG_JOYP);
+	uint8_t v = 0x3F;
+	if (!(joyp & (1 << 4)))
+		v &= ~((1 << 4) | ((mem->joyp >> 0) & 0xF));
+	if (!(joyp & (1 << 5)))
+		v &= ~((1 << 5) | ((mem->joyp >> 4) & 0xF));
+	return v;
 }
 
 static void joyp_set(mem_ref_t *ref, uint8_t v)
 {
 	mem_t *mem = (mem_t*)ref->udata;
-	mem_set_reg(mem, MEM_REG_JOYP, (mem_get_reg(mem, MEM_REG_JOYP) & 0x0F) | (v & 0x10));
+	mem_set_reg(mem, MEM_REG_JOYP, v & 0x30);
 }
 
 static void stat_set(mem_ref_t *ref, uint8_t v)
 {
 	mem_t *mem = (mem_t*)ref->udata;
-	mem_set_reg(mem, MEM_REG_JOYP, (mem_get_reg(mem, MEM_REG_JOYP) & 0x03) | (v & 0xF40));
+	mem_set_reg(mem, MEM_REG_STAT, (mem_get_reg(mem, MEM_REG_STAT) & 0x03) | (v & 0x74));
 }
 
 static void div_set(mem_ref_t *ref, uint8_t v)
@@ -97,8 +89,22 @@ static void div_set(mem_ref_t *ref, uint8_t v)
 	mem_set_reg(mem, MEM_REG_DIV, 0);
 }
 
-static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
+static void dma_set(mem_ref_t *ref, uint8_t v)
 {
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_DMA, v);
+	mem->dmatransfer = 0x9F;
+}
+
+static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
+{
+	if (mem->dmatransfer && !dmabypass)
+	{
+		if (addr >= 0xFF80 && addr < 0xFFFF)
+			return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
+		return MEM_REF_PTR(NULL, empty_get, empty_set);;
+	}
+
 	if (addr < 0x100)
 	{
 		if (mem_get_reg(mem, MEM_REG_BOOT))
@@ -132,7 +138,7 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
 		return MEM_REF_PTR(&mem->workram1[addr - 0xF000], simple_get, simple_set);
 
 	if (addr < 0xFEA0) /* OAM */
-		return MEM_REF_PTR(&mem->oam[addr - 0xFE00], oam_get, oam_set);
+		return MEM_REF_PTR(&mem->oam[addr - 0xFE00], simple_get, simple_set);
 
 	if (addr < 0xFF00) /* unmapped */
 		return MEM_REF_PTR(NULL, empty_get, empty_set);
@@ -147,8 +153,18 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr)
 			return MEM_REF_ADDR(addr, reg_get, stat_set, mem);
 		case MEM_REG_DIV:
 			return MEM_REF_ADDR(addr, reg_get, div_set, mem);
+		case MEM_REG_DMA:
+			return MEM_REF_ADDR(addr, reg_get, dma_set, mem);
 	}
 	return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
+}
+
+void mem_dmatransfer(mem_t *mem)
+{
+	uint8_t i = 0x9F - mem->dmatransfer;
+	mem_ref_t ref = mem_u8(mem, mem->highram[MEM_REG_DMA - 0xFF00] * 0x100 + i, true);
+	uint8_t v = ref.get ? ref.get(&ref) : 0;
+	mem->oam[i] = v;
 }
 
 uint8_t mem_get_reg(mem_t *mem, uint16_t addr)
@@ -163,7 +179,7 @@ void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
 
 uint8_t mem_get8(mem_t *mem, uint16_t addr)
 {
-	mem_ref_t ref = mem_u8(mem, addr);
+	mem_ref_t ref = mem_u8(mem, addr, false);
 	if (ref.get)
 		return ref.get(&ref);
 	return 0;
@@ -171,7 +187,7 @@ uint8_t mem_get8(mem_t *mem, uint16_t addr)
 
 void mem_set8(mem_t *mem, uint16_t addr, uint8_t v)
 {
-	mem_ref_t ref = mem_u8(mem, addr);
+	mem_ref_t ref = mem_u8(mem, addr, false);
 	if (ref.set)
 		ref.set(&ref, v);
 }

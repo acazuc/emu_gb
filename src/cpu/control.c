@@ -90,7 +90,7 @@ INSTR_DEF(ret_##f) \
 			cpu->regs.pc = cpu->instr_tmp.u16[0]; \
 			return true; \
 	} \
-	cpu->regs.pc += 3; \
+	cpu->regs.pc += 1; \
 	return true; \
 }
 

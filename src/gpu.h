@@ -9,6 +9,9 @@
 typedef struct gpu_s
 {
 	uint8_t data[144 * 160 * 4];
+	uint8_t priorities[160];
+	uint8_t hasprinted[160];
+	uint8_t lowestx[160];
 	uint8_t y;
 	uint8_t x;
 	mem_t *mem;

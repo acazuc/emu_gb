@@ -154,6 +154,7 @@ void retro_run(void)
 	gb_frame(g_gb, (uint8_t*)video_buf, audio_buf, AUDIO_FRAME, joypad);
 
 	video_cb(video_buf, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH * sizeof(uint32_t));
+	memset(audio_buf, 0, sizeof(audio_buf));
 	audio_batch_cb(audio_buf, AUDIO_FRAME);
 }
 
