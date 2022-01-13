@@ -159,40 +159,6 @@ static void print_instr(cpu_t *cpu)
 	        cpu->ime ? 1 : 0);
 }
 
-static void timer(cpu_t *cpu)
-{
-	if (cpu->timerint && !--cpu->timerint)
-	{
-		mem_set_reg(cpu->mem, MEM_REG_TIMA, mem_get_reg(cpu->mem, MEM_REG_TMA));
-		mem_set_reg(cpu->mem, MEM_REG_IF, mem_get_reg(cpu->mem, MEM_REG_IF) | (1 << 2));
-		cpu->timerint = false;
-	}
-
-	cpu->mem->timer++;
-	uint8_t tac = mem_get_reg(cpu->mem, MEM_REG_TAC);
-	uint8_t tmp;
-	if (tac & (1 << 2))
-	{
-		static const uint16_t masks[] = {1 << 9, 1 << 3, 1 << 5, 1 << 7};
-		tmp = cpu->mem->timer & masks[tac & 0x3];
-	}
-	else
-	{
-		tmp = 0;
-	}
-
-	if (!tmp && cpu->lasttimer)
-	{
-		uint8_t tima = mem_get_reg(cpu->mem, MEM_REG_TIMA);
-		if (tima == 0xff)
-			cpu->timerint = 0x4;
-		mem_set_reg(cpu->mem, MEM_REG_TIMA, tima + 1);
-	}
-
-	cpu->lasttimer = tmp;
-
-}
-
 static void cpu_cycle(cpu_t *cpu)
 {
 	static bool debug = false;
@@ -254,8 +220,6 @@ static void cpu_cycle(cpu_t *cpu)
 
 void cpu_clock(cpu_t *cpu)
 {
-	timer(cpu);
-
 	if (++cpu->clock_count == 4)
 	{
 		cpu_cycle(cpu);

@@ -16,6 +16,8 @@ struct gb_s
 	cpu_t *cpu;
 	gpu_t *gpu;
 	apu_t *apu;
+	uint8_t lasttimer;
+	uint8_t timerint;
 };
 
 gb_t *gb_new(const void *mbc_data, size_t mbc_size)
@@ -78,10 +80,44 @@ void gb_del(gb_t *gb)
 	free(gb);
 }
 
+static void timer_clock(gb_t *gb)
+{
+	if (gb->timerint && !--gb->timerint)
+	{
+		mem_set_reg(gb->mem, MEM_REG_TIMA, mem_get_reg(gb->mem, MEM_REG_TMA));
+		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 2));
+		gb->timerint = false;
+	}
+
+	gb->mem->timer++;
+	uint8_t tac = mem_get_reg(gb->mem, MEM_REG_TAC);
+	uint8_t tmp;
+	if (tac & (1 << 2))
+	{
+		static const uint16_t masks[] = {1 << 9, 1 << 3, 1 << 5, 1 << 7};
+		tmp = gb->mem->timer & masks[tac & 0x3];
+	}
+	else
+	{
+		tmp = 0;
+	}
+
+	if (!tmp && gb->lasttimer)
+	{
+		uint8_t tima = mem_get_reg(gb->mem, MEM_REG_TIMA);
+		if (tima == 0xff)
+			gb->timerint = 0x4;
+		mem_set_reg(gb->mem, MEM_REG_TIMA, tima + 1);
+	}
+
+	gb->lasttimer = tmp;
+}
+
 static void gb_clock(gb_t *gb, size_t cycles)
 {
 	for (size_t i = 0; i < cycles; ++i)
 	{
+		timer_clock(gb);
 		cpu_clock(gb->cpu);
 		apu_clock(gb->apu);
 	}

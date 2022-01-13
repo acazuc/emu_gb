@@ -86,8 +86,6 @@ typedef struct cpu_s
 	mem_t *mem;
 	bool ime;
 	uint8_t ei;
-	uint8_t lasttimer;
-	uint8_t timerint;
 } cpu_t;
 
 cpu_t *cpu_new(mem_t *mem);
