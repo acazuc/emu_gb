@@ -6,6 +6,9 @@
 
 #define MEM_REG_JOYP 0xFF00
 #define MEM_REG_DIV  0xFF04
+#define MEM_REG_TIMA 0xFF05
+#define MEM_REG_TMA  0xFF06
+#define MEM_REG_TAC  0xFF07
 #define MEM_REG_IF   0xFF0F
 #define MEM_REG_LCDC 0xFF40
 #define MEM_REG_STAT 0xFF41
@@ -34,6 +37,7 @@ typedef struct mem_s
 	uint8_t highram[0x100];
 	uint8_t joyp;
 	uint8_t dmatransfer;
+	uint16_t timer;
 	mbc_t *mbc;
 } mem_t;
 

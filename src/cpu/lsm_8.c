@@ -103,7 +103,7 @@ INSTR_DEF(ld_hl_##r) \
 		case 0: \
 			return false; \
 		case 1: \
-			mem_set8(cpu->mem, cpu->regs.hl, cpu->regs.c); \
+			mem_set8(cpu->mem, cpu->regs.hl, cpu->regs.r); \
 			break; \
 	} \
 	cpu->regs.pc += 1; \

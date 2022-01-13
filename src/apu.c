@@ -1,11 +1,16 @@
 #include "apu.h"
+
 #include <stdlib.h>
+#include <stdio.h>
 
 apu_t *apu_new(mem_t *mem)
 {
 	apu_t *apu = calloc(sizeof(*apu), 1);
 	if (!apu)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
 
 	apu->mem = mem;
 	return apu;

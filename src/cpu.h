@@ -63,8 +63,15 @@ typedef union cpu_regs_s
 
 typedef struct cpu_instr_s cpu_instr_t;
 
+enum cpu_state
+{
+	CPU_RUN,
+	CPU_HALT,
+};
+
 typedef struct cpu_s
 {
+	enum cpu_state state;
 	cpu_regs_t regs;
 	uint32_t instr_cycle;
 	uint32_t clock_count;
@@ -78,15 +85,13 @@ typedef struct cpu_s
 	mem_t *mem;
 	bool ime;
 	uint8_t ei;
+	uint8_t lasttimer;
+	uint8_t timerint;
 } cpu_t;
 
 cpu_t *cpu_new(mem_t *mem);
 void cpu_del(cpu_t *cpu);
 
 void cpu_clock(cpu_t *cpu);
-void cpu_update_hflag16(cpu_t *cpu, uint16_t v1, uint16_t v2, uint8_t add);
-void cpu_update_hflag8(cpu_t *cpu, uint8_t v1, uint8_t v2, uint8_t add);
-void cpu_update_cflag16(cpu_t *cpu, uint16_t v1, uint16_t v2, uint8_t add);
-void cpu_update_cflag8(cpu_t *cpu, uint8_t v1, uint8_t v2, uint8_t add);
 
 #endif

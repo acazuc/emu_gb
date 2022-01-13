@@ -1,17 +1,24 @@
 #include "mbc.h"
+
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <stdint.h>
+#include <stdio.h>
 
 mbc_t *mbc_new(const void *data, size_t len)
 {
 	if (len < 0x150)
+	{
+		fprintf(stderr, "rom too short\n");
 		return NULL;
+	}
 
 	fprintf(stderr, "%s\n", &((char*)data)[0x134]);
-	if ((size_t)((32 * 1024) << ((uint8_t*)data)[0x148]) != len)
+	if ((size_t)((32 * 1024) << ((uint8_t*)data)[0x148]) < len)
+	{
+		fprintf(stderr, "rom has invalid size: got %u, expected %u\n", (unsigned)((32 * 1024) << ((uint8_t*)data)[0x148]), (unsigned)len);
 		return NULL;
+	}
 
 	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 2;
 	uint8_t rambanks;
@@ -34,6 +41,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 			rambanks = 8;
 			break;
 		default:
+			fprintf(stderr, "invalid rambanks count\n");
 			return NULL;
 	}
 
@@ -66,8 +74,10 @@ mbc_t *mbc_new(const void *data, size_t len)
 			options = MBC_OPT_BATTERY;
 			break;
 		case 0x8: /* rom + ram */
+			fprintf(stderr, "unsupported rom type\n");
 			return NULL; //unsupported
 		case 0x9: /* rom + ram + battery */
+			fprintf(stderr, "unsupported rom type\n");
 			return NULL; //unsupported
 		case 0xB: /* mmm1 */
 			mbctype = MBC_MMM1;
@@ -150,16 +160,21 @@ mbc_t *mbc_new(const void *data, size_t len)
 			options = MBC_OPT_RAM | MBC_OPT_BATTERY;
 			break;
 		default:
-			break;
+			fprintf(stderr, "unknown rom type: %d\n", ((uint8_t*)data)[0x147]);
+			return NULL;
 	}
 
 	mbc_t *mbc = malloc(sizeof(*mbc));
 	if (mbc == NULL)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
 
 	mbc->data = calloc(len, 1);
 	if (mbc->data == NULL)
 	{
+		fprintf(stderr, "allocation failed\n");
 		free(mbc);
 		return NULL;
 	}
@@ -167,12 +182,15 @@ mbc_t *mbc_new(const void *data, size_t len)
 	memcpy(mbc->data, data, len);
 	mbc->size = len;
 	mbc->rambanksnb = rambanks;
-	mbc->rambanks = calloc(1, 0x8000 * rambanks);
 	mbc->rombanksnb = rombanks;
 	mbc->type = mbctype;
 	mbc->options = options;
+	mbc->rambanks = calloc(1, 0x8000 * rambanks);
 	if (!mbc->rambanks)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
 	return mbc;
 }
 

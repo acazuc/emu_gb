@@ -155,7 +155,7 @@ void retro_run(void)
 
 	video_cb(video_buf, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH * sizeof(uint32_t));
 	memset(audio_buf, 0, sizeof(audio_buf));
-	audio_batch_cb(audio_buf, AUDIO_FRAME);
+	//audio_batch_cb(audio_buf, AUDIO_FRAME);
 }
 
 bool retro_load_game(const struct retro_game_info *info)

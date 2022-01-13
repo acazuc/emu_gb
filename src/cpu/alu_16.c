@@ -43,8 +43,8 @@ INSTR_DEF(add_hl_##rr) \
 			uint16_t v = cpu->regs.hl; \
 			cpu->regs.hl += cpu->regs.rr; \
 			CPU_SET_FLAG_N(cpu, 0); \
-			cpu_update_hflag16(cpu, v, cpu->regs.hl, 1); \
-			cpu_update_cflag16(cpu, v, cpu->regs.hl, 1); \
+			CPU_SET_FLAG_H(cpu, (cpu->regs.hl & 0xfff) < (v & 0xfff)); \
+			CPU_SET_FLAG_C(cpu, cpu->regs.hl < v); \
 			break; \
 		} \
 	} \
@@ -81,8 +81,8 @@ INSTR_DEF(add_sp_n)
 			cpu->regs.sp = (cpu->regs.sp & 0x00FF) | (cpu->instr_tmp.u16[0] & 0xFF00);
 			CPU_SET_FLAG_Z(cpu, 0);
 			CPU_SET_FLAG_N(cpu, 0);
-			cpu_update_hflag16(cpu, v, cpu->regs.sp, 1);
-			cpu_update_cflag16(cpu, v, cpu->regs.sp, 1);
+			CPU_SET_FLAG_H(cpu, (cpu->regs.sp & 0xf) < (v & 0xf));
+			CPU_SET_FLAG_C(cpu, (cpu->regs.sp & 0xff) < (v & 0xff));
 			break;
 		}
 	}
@@ -101,12 +101,12 @@ INSTR_DEF(ld_hl_spn)
 			return false;
 		case 2:
 		{
-			uint16_t v = cpu->regs.hl;
+			uint8_t v = cpu->regs.sp;
 			cpu->regs.hl = cpu->regs.sp + cpu->instr_tmp.i8[0];
 			CPU_SET_FLAG_Z(cpu, 0);
 			CPU_SET_FLAG_N(cpu, 0);
-			cpu_update_hflag16(cpu, v, cpu->regs.hl, 1);
-			cpu_update_cflag16(cpu, v, cpu->regs.hl, 1);
+			CPU_SET_FLAG_H(cpu, (cpu->regs.hl & 0xf) < (v & 0xf));
+			CPU_SET_FLAG_C(cpu, (cpu->regs.hl & 0xff) < (v & 0xff));
 			break;
 		}
 	}

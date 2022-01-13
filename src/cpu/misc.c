@@ -18,6 +18,7 @@ INSTR_DEF(stop)
 INSTR_DEF(halt)
 {
 	(void)count;
+	cpu->state = CPU_HALT;
 	cpu->regs.pc++;
 	return true;
 }

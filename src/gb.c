@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 struct gb_s
 {
@@ -21,27 +22,45 @@ gb_t *gb_new(const void *mbc_data, size_t mbc_size)
 {
 	gb_t *gb = calloc(sizeof(*gb), 1);
 	if (gb == NULL)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
 
 	gb->mbc = mbc_new(mbc_data, mbc_size);
 	if (!gb->mbc)
+	{
+		fprintf(stderr, "can't create mbc\n");
 		return NULL;
+	}
 
 	gb->mem = mem_new(gb->mbc);
 	if (!gb->mem)
+	{
+		fprintf(stderr, "can't create memory\n");
 		return NULL;
+	}
 
 	gb->cpu = cpu_new(gb->mem);
 	if (!gb->cpu)
+	{
+		fprintf(stderr, "can't create cpu\n");
 		return NULL;
+	}
 
 	gb->gpu = gpu_new(gb->mem);
 	if (!gb->gpu)
+	{
+		fprintf(stderr, "can't create gpu\n");
 		return NULL;
+	}
 
 	gb->apu = apu_new(gb->mem);
 	if (!gb->apu)
+	{
+		fprintf(stderr, "can't create apu\n");
 		return NULL;
+	}
 
 	return gb;
 }
@@ -88,7 +107,13 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t audio_b
 		}
 	}
 
-	gb->mem->joyp = joypad;
+	if (gb->mem->joyp != joypad)
+	{
+		fprintf(stderr, "joypad: %x\n", joypad);
+		gb->mem->joyp = joypad;
+		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 4));
+	}
+
 	for (size_t y = 0; y < 144; ++y)
 	{
 		uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);

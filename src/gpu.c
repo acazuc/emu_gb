@@ -1,4 +1,5 @@
 #include "gpu.h"
+
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,7 +9,10 @@ gpu_t *gpu_new(mem_t *mem)
 {
 	gpu_t *gpu = calloc(sizeof(*gpu), 1);
 	if (!gpu)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
 
 	gpu->mem = mem;
 	return gpu;
@@ -24,7 +28,7 @@ void gpu_del(gpu_t *gpu)
 static void render_tile(gpu_t *gpu, uint16_t addr, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t bgp)
 {
 	uint8_t coloridx = (((mem_get8(gpu->mem, addr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
-		             | (((mem_get8(gpu->mem, addr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
+	                 | (((mem_get8(gpu->mem, addr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	static const uint8_t values[4] = {0xFF, 0xAA, 0x55, 0x00};
 	uint8_t color = values[(bgp >> (coloridx << 1)) & 0x3];
 	memset(&gpu->data[(y * 160 + x) * 4], color, 4);

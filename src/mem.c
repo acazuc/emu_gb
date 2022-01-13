@@ -1,5 +1,6 @@
 #include "mem.h"
 #include "mbc.h"
+
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,7 +18,10 @@ mem_t *mem_new(mbc_t *mbc)
 
 	mem_t *mem = calloc(sizeof(*mem), 1);
 	if (!mem)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
 
 	mem->mbc = mbc;
 	return mem;
@@ -82,11 +86,17 @@ static void stat_set(mem_ref_t *ref, uint8_t v)
 	mem_set_reg(mem, MEM_REG_STAT, (mem_get_reg(mem, MEM_REG_STAT) & 0x03) | (v & 0x74));
 }
 
+static uint8_t div_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem->timer >> 8;
+}
+
 static void div_set(mem_ref_t *ref, uint8_t v)
 {
 	(void)v;
 	mem_t *mem = (mem_t*)ref->udata;
-	mem_set_reg(mem, MEM_REG_DIV, 0);
+	mem->timer = 0;
 }
 
 static void dma_set(mem_ref_t *ref, uint8_t v)
@@ -102,7 +112,7 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 	{
 		if (addr >= 0xFF80 && addr < 0xFFFF)
 			return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
-		return MEM_REF_PTR(NULL, empty_get, empty_set);;
+		return MEM_REF_PTR(NULL, empty_get, empty_set);
 	}
 
 	if (addr < 0x100)
@@ -152,7 +162,7 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 		case MEM_REG_STAT:
 			return MEM_REF_ADDR(addr, reg_get, stat_set, mem);
 		case MEM_REG_DIV:
-			return MEM_REF_ADDR(addr, reg_get, div_set, mem);
+			return MEM_REF_ADDR(addr, div_get, div_set, mem);
 		case MEM_REG_DMA:
 			return MEM_REF_ADDR(addr, reg_get, dma_set, mem);
 	}

@@ -1,5 +1,6 @@
 #include "cpu.h"
 #include "cpu/instr.h"
+
 #include <inttypes.h>
 #include <string.h>
 #include <stdlib.h>
@@ -9,7 +10,11 @@ cpu_t *cpu_new(mem_t *mem)
 {
 	cpu_t *cpu = calloc(sizeof(*cpu), 1);
 	if (!cpu)
+	{
+		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
+
 	cpu->mem = mem;
 	return cpu;
 }
@@ -35,13 +40,14 @@ static void next_instruction(cpu_t *cpu)
 
 static bool handle_interrupt(cpu_t *cpu)
 {
-	if (!cpu->ime)
-		return false;
 	uint8_t reg_if = mem_get8(cpu->mem, MEM_REG_IF);
 	if (!reg_if)
 		return false;
 	uint8_t ie = mem_get8(cpu->mem, MEM_REG_IE);
 	if (!(ie & reg_if))
+		return false;
+	cpu->state = CPU_RUN;
+	if (!cpu->ime)
 		return false;
 	for (uint8_t i = 0; i < 5; ++i)
 	{
@@ -134,7 +140,7 @@ static void print_instr(cpu_t *cpu)
 	{
 		snprintf(cur, len, "%s", name);
 	}
-	fprintf(stderr, "[%1d] %-20s A=%02x B=%02x C=%02x D=%02x E=%02x H=%02x L=%02x PC=%04x SP=%04x [%c%c%c%c]\n",
+	fprintf(stderr, "[%1d] %-20s A=%02x B=%02x C=%02x D=%02x E=%02x H=%02x L=%02x PC=%04x SP=%04x [%c%c%c%c] IME=%d\n",
 	        cpu->instr_cycle,
 	        decoded,
 	        cpu->regs.a,
@@ -149,15 +155,52 @@ static void print_instr(cpu_t *cpu)
 	        cpu->regs.f & CPU_FLAG_Z ? 'Z' : '-',
 	        cpu->regs.f & CPU_FLAG_N ? 'N' : '-',
 	        cpu->regs.f & CPU_FLAG_H ? 'H' : '-',
-	        cpu->regs.f & CPU_FLAG_C ? 'C' : '-');
+	        cpu->regs.f & CPU_FLAG_C ? 'C' : '-',
+	        cpu->ime ? 1 : 0);
+}
+
+static void timer(cpu_t *cpu)
+{
+	if (cpu->timerint && !--cpu->timerint)
+	{
+		mem_set_reg(cpu->mem, MEM_REG_TIMA, mem_get_reg(cpu->mem, MEM_REG_TMA));
+		mem_set_reg(cpu->mem, MEM_REG_IF, mem_get_reg(cpu->mem, MEM_REG_IF) | (1 << 2));
+		cpu->timerint = false;
+	}
+
+	cpu->mem->timer++;
+	uint8_t tac = mem_get_reg(cpu->mem, MEM_REG_TAC);
+	uint8_t tmp;
+	if (tac & (1 << 2))
+	{
+		static const uint16_t masks[] = {1 << 9, 1 << 3, 1 << 5, 1 << 7};
+		tmp = cpu->mem->timer & masks[tac & 0x3];
+	}
+	else
+	{
+		tmp = 0;
+	}
+
+	if (!tmp && cpu->lasttimer)
+	{
+		uint8_t tima = mem_get_reg(cpu->mem, MEM_REG_TIMA);
+		if (tima == 0xff)
+			cpu->timerint = 0x4;
+		mem_set_reg(cpu->mem, MEM_REG_TIMA, tima + 1);
+	}
+
+	cpu->lasttimer = tmp;
+
 }
 
 static void cpu_cycle(cpu_t *cpu)
 {
 	static bool debug = false;
 
+#if 0
 	if (cpu->regs.pc == 0x100)
 		debug = true;
+#endif
 
 #if 0
 	next_instruction(cpu);
@@ -168,6 +211,15 @@ static void cpu_cycle(cpu_t *cpu)
 
 	if (!cpu->instr)
 		next_instruction(cpu);
+
+	if (cpu->state == CPU_HALT)
+	{
+		if (!handle_interrupt(cpu))
+			return;
+		if (debug)
+			print_instr(cpu);
+		cpu->state = CPU_RUN;
+	}
 
 	bool end = cpu->instr->fn(cpu, cpu->instr_cycle);
 	if (end)
@@ -202,57 +254,11 @@ static void cpu_cycle(cpu_t *cpu)
 
 void cpu_clock(cpu_t *cpu)
 {
+	timer(cpu);
+
 	if (++cpu->clock_count == 4)
 	{
 		cpu_cycle(cpu);
 		cpu->clock_count = 0;
-	}
-}
-
-void cpu_update_hflag16(cpu_t *cpu, uint16_t v1, uint16_t v2, uint8_t add)
-{
-	if (add)
-	{
-		CPU_SET_FLAG_H(cpu, v1 > v2 || (v1 & 0xF0) != (v2 & 0xF0));
-	}
-	else
-	{
-		CPU_SET_FLAG_H(cpu, v1 <v2 || (v1 & 0xF0) != (v2 & 0xF0));
-	}
-}
-
-void cpu_update_hflag8(cpu_t *cpu, uint8_t v1, uint8_t v2, uint8_t add)
-{
-	if (add)
-	{
-		CPU_SET_FLAG_H(cpu, v1 > v2 || (v1 & 0xF0) != (v2 & 0xF0));
-	}
-	else
-	{
-		CPU_SET_FLAG_H(cpu, v1 < v2 || (v1 & 0xF0) != (v2 & 0xF0));
-	}
-}
-
-void cpu_update_cflag16(cpu_t *cpu, uint16_t v1, uint16_t v2, uint8_t add)
-{
-	if (add)
-	{
-		CPU_SET_FLAG_C(cpu, v1 > v2);
-	}
-	else
-	{
-		CPU_SET_FLAG_C(cpu, v1 < v2);
-	}
-}
-
-void cpu_update_cflag8(cpu_t *cpu, uint8_t v1, uint8_t v2, uint8_t add)
-{
-	if (add)
-	{
-		CPU_SET_FLAG_C(cpu, v1 > v2);
-	}
-	else
-	{
-		CPU_SET_FLAG_C(cpu, v1 < v2);
 	}
 }

@@ -77,6 +77,7 @@ INSTR_DEF(pop_##r1####r2) \
 			return false; \
 		case 2: \
 			cpu->regs.r1 = mem_get8(cpu->mem, cpu->regs.sp++); \
+			cpu->regs.f &= 0xF0; \
 			break; \
 	} \
 	cpu->regs.pc += 1; \

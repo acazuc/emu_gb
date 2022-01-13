@@ -382,7 +382,7 @@ cpu_instr_t g_cpu_instructions[256] =
 	{"UNSET (d3)" , INSTR_NAME(unset)},
 	{"call nc, nn", INSTR_NAME(call_nc_nn)},
 	{"push de"    , INSTR_NAME(push_de)},
-	{"sub a, n"   , INSTR_NAME(sub_a_b)},
+	{"sub a, n"   , INSTR_NAME(sub_a_n)},
 	{"rst 10"     , INSTR_NAME(rst_10)},
 	/* 0xD8 */
 	{"ret c"      , INSTR_NAME(ret_c)},
@@ -528,7 +528,7 @@ cpu_instr_t g_cpu_int_instructions[5] =
 {
 	{"int 40", INSTR_NAME(int_40)},
 	{"int 48", INSTR_NAME(int_48)},
-	{"int 60", INSTR_NAME(int_50)},
+	{"int 50", INSTR_NAME(int_50)},
 	{"int 58", INSTR_NAME(int_58)},
 	{"int 60", INSTR_NAME(int_60)},
 };
