@@ -3,9 +3,17 @@
 
 #include "mem.h"
 
+typedef struct apu_sample_s
+{
+	uint16_t l;
+	uint16_t r;
+} apu_sample_t;
+
 typedef struct apu_s
 {
-	char data[48000 / 59];
+	apu_sample_t data[4389];
+	uint32_t sample;
+	uint16_t clock;
 	mem_t *mem;
 } apu_t;
 

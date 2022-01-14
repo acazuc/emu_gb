@@ -12,12 +12,12 @@
 #define VIDEO_HEIGHT 144
 #define VIDEO_PIXELS VIDEO_WIDTH * VIDEO_HEIGHT
 
-#define AUDIO_FRAME (2 * 48000 / 59)
+#define AUDIO_FRAME ((unsigned)(262144 / 59.72750056960583276373) / 2 * 2) //4389
 
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
-uint32_t video_buf[VIDEO_PIXELS];
-int16_t  audio_buf[AUDIO_FRAME];
+static uint32_t video_buf[VIDEO_PIXELS];
+static int16_t  audio_buf[AUDIO_FRAME * 2];
 
 gb_t *g_gb = NULL;
 
@@ -70,7 +70,7 @@ void retro_get_system_av_info(struct retro_system_av_info *info)
 {
 	memset(info, 0, sizeof(*info));
 	info->timing.fps            = 59.72750056960583276373;
-	info->timing.sample_rate    = 48000;
+	info->timing.sample_rate    = 262144;
 	info->geometry.base_width   = VIDEO_WIDTH;
 	info->geometry.base_height  = VIDEO_HEIGHT;
 	info->geometry.max_width    = VIDEO_WIDTH;
@@ -144,11 +144,18 @@ void retro_run(void)
 	joypad |= GB_BUTTON_START  * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
 	joypad |= GB_BUTTON_SELECT * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT));
 
-	gb_frame(g_gb, (uint8_t*)video_buf, audio_buf, AUDIO_FRAME, joypad);
+	gb_frame(g_gb, (uint8_t*)video_buf, audio_buf, joypad);
 
 	video_cb(video_buf, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH * sizeof(uint32_t));
-	memset(audio_buf, 0, sizeof(audio_buf));
-	//audio_batch_cb(audio_buf, AUDIO_FRAME);
+	for (size_t i = 0; i < sizeof(audio_buf) / sizeof(*audio_buf); ++i)
+	{
+		fprintf(stderr, "%04x ", audio_buf[i]);
+		if (i % 16 == 15)
+			fprintf(stderr, "\n");
+	}
+	for (size_t i = 0; i < sizeof(audio_buf); ++i)
+		((uint8_t*)audio_buf)[i] = rand();
+	audio_batch_cb(audio_buf, AUDIO_FRAME);
 }
 
 bool retro_load_game(const struct retro_game_info *info)

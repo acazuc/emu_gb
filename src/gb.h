@@ -21,6 +21,6 @@ enum gb_button
 gb_t *gb_new(const void *rom_data, size_t rom_size);
 void gb_del(gb_t *gb);
 
-void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t audio_buf_size, uint32_t joypad);
+void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad);
 
 #endif
