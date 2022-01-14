@@ -12,12 +12,13 @@
 #define VIDEO_HEIGHT 144
 #define VIDEO_PIXELS VIDEO_WIDTH * VIDEO_HEIGHT
 
-#define AUDIO_FRAME ((unsigned)(262144 / 59.72750056960583276373) / 2 * 2) //4389
+#define VIDEO_FPS (59.72750056960583276373)
+#define AUDIO_FPS (48000)
+
+#define AUDIO_FRAME (804) /* ceil(AUDIO_FPS / VIDEO_FPS) */
 
 static struct retro_log_callback logging;
 static retro_log_printf_t log_cb;
-static uint32_t video_buf[VIDEO_PIXELS];
-static int16_t  audio_buf[AUDIO_FRAME * 2];
 
 gb_t *g_gb = NULL;
 
@@ -69,8 +70,8 @@ static retro_input_state_t input_state_cb;
 void retro_get_system_av_info(struct retro_system_av_info *info)
 {
 	memset(info, 0, sizeof(*info));
-	info->timing.fps            = 59.72750056960583276373;
-	info->timing.sample_rate    = 262144;
+	info->timing.fps            = VIDEO_FPS;
+	info->timing.sample_rate    = AUDIO_FPS;
 	info->geometry.base_width   = VIDEO_WIDTH;
 	info->geometry.base_height  = VIDEO_HEIGHT;
 	info->geometry.max_width    = VIDEO_WIDTH;
@@ -130,11 +131,16 @@ void retro_reset(void)
 {
 }
 
+static uint8_t video_buf[VIDEO_WIDTH * VIDEO_HEIGHT * 4];
+static int16_t audio_buf[AUDIO_FRAME * 2];
+
 void retro_run(void)
 {
+	int16_t tmp_audio[2 * 804];
+	uint32_t joypad = 0;
+
 	input_poll_cb();
 
-	uint32_t joypad = 0;
 	joypad |= GB_BUTTON_LEFT   * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_LEFT));
 	joypad |= GB_BUTTON_RIGHT  * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_RIGHT));
 	joypad |= GB_BUTTON_UP     * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_UP));
@@ -144,17 +150,17 @@ void retro_run(void)
 	joypad |= GB_BUTTON_START  * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_START));
 	joypad |= GB_BUTTON_SELECT * (!!input_state_cb(0, RETRO_DEVICE_JOYPAD, 0, RETRO_DEVICE_ID_JOYPAD_SELECT));
 
-	gb_frame(g_gb, (uint8_t*)video_buf, audio_buf, joypad);
+	gb_frame(g_gb, video_buf, tmp_audio, joypad);
 
-	video_cb(video_buf, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH * sizeof(uint32_t));
-	for (size_t i = 0; i < sizeof(audio_buf) / sizeof(*audio_buf); ++i)
+	video_cb(video_buf, VIDEO_WIDTH, VIDEO_HEIGHT, VIDEO_WIDTH * 4);
+
+	for (size_t i = 0; i < AUDIO_FRAME; ++i)
 	{
-		fprintf(stderr, "%04x ", audio_buf[i]);
-		if (i % 16 == 15)
-			fprintf(stderr, "\n");
+		uint16_t dst = i * 804 / AUDIO_FRAME;
+		audio_buf[i * 2 + 0] = tmp_audio[dst * 2 + 0];
+		audio_buf[i * 2 + 1] = tmp_audio[dst * 2 + 1];
 	}
-	for (size_t i = 0; i < sizeof(audio_buf); ++i)
-		((uint8_t*)audio_buf)[i] = rand();
+
 	audio_batch_cb(audio_buf, AUDIO_FRAME);
 }
 

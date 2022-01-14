@@ -1,6 +1,8 @@
 #ifndef APU_H
 #define APU_H
 
+#define APU_FRAME_SAMPLES 804
+
 #include "mem.h"
 
 typedef struct apu_sample_s
@@ -11,9 +13,9 @@ typedef struct apu_sample_s
 
 typedef struct apu_s
 {
-	apu_sample_t data[4389];
+	apu_sample_t data[APU_FRAME_SAMPLES];
 	uint32_t sample;
-	uint16_t clock;
+	uint32_t clock;
 	mem_t *mem;
 } apu_t;
 

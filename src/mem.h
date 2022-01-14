@@ -28,7 +28,7 @@
 #define MEM_REG_NR42 0xFF21
 #define MEM_REG_NR43 0xFF22
 #define MEM_REG_NR44 0xFF23
-#define MEM_REG_NR50 0xFf24
+#define MEM_REG_NR50 0xFF24
 #define MEM_REG_NR51 0xFF25
 #define MEM_REG_NR52 0xFF26
 #define MEM_REG_WAVE 0xFF30

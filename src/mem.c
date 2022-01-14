@@ -62,6 +62,12 @@ static uint8_t reg_get(mem_ref_t *ref)
 	return mem_get_reg(mem, ref->addr);
 }
 
+static void reg_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, ref->addr, v);
+}
+
 static uint8_t joyp_get(mem_ref_t *ref)
 {
 	mem_t *mem = (mem_t*)ref->udata;
@@ -165,6 +171,10 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 			return MEM_REF_ADDR(addr, div_get, div_set, mem);
 		case MEM_REG_DMA:
 			return MEM_REF_ADDR(addr, reg_get, dma_set, mem);
+		case MEM_REG_NR13:
+		case MEM_REG_NR23:
+		case MEM_REG_NR33:
+			return MEM_REF_ADDR(addr, empty_get, reg_set, mem);
 	}
 	return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
 }

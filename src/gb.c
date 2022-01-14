@@ -125,7 +125,6 @@ static void gb_clock(gb_t *gb, size_t cycles)
 
 void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad)
 {
-	fprintf(stderr, "frame\n");
 	for (size_t y = 0; y < GPU_HEIGHT; ++y)
 	{
 		for (size_t x = 0; x < GPU_WIDTH; ++x)
