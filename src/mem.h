@@ -48,6 +48,7 @@
 #define MEM_REG_IE   0xFFFF
 
 typedef struct mbc_s mbc_t;
+typedef struct gb_s gb_t;
 
 typedef struct mem_s
 {
@@ -61,6 +62,7 @@ typedef struct mem_s
 	uint8_t dmatransfer;
 	uint16_t timer;
 	mbc_t *mbc;
+	gb_t *gb;
 } mem_t;
 
 typedef struct mem_ref_s mem_ref_t;
@@ -83,7 +85,7 @@ struct mem_ref_s
 #define MEM_REF_PTR(p, get, set) ((mem_ref_t){.ptr = p, get, set, NULL})
 #define MEM_REF_ADDR(a, get, set, udata) ((mem_ref_t){.addr = a, get, set, udata})
 
-mem_t *mem_new(mbc_t *mbc);
+mem_t *mem_new(gb_t *gb, mbc_t *mbc);
 void mem_del(mem_t *mem);
 
 void mem_set_joyp(mem_t *mem, uint8_t joyp);

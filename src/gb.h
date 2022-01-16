@@ -4,7 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef struct gb_s gb_t;
+typedef struct mbc_s mbc_t;
+typedef struct mem_s mem_t;
+typedef struct cpu_s cpu_t;
+typedef struct gpu_s gpu_t;
+typedef struct apu_s apu_t;
 
 enum gb_button
 {
@@ -17,6 +21,17 @@ enum gb_button
 	GB_BUTTON_SELECT = (1 << 6),
 	GB_BUTTON_START  = (1 << 7),
 };
+
+typedef struct gb_s
+{
+	mbc_t *mbc;
+	mem_t *mem;
+	cpu_t *cpu;
+	gpu_t *gpu;
+	apu_t *apu;
+	uint8_t lasttimer;
+	uint8_t timerint;
+} gb_t;
 
 gb_t *gb_new(const void *rom_data, size_t rom_size);
 void gb_del(gb_t *gb);

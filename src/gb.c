@@ -9,17 +9,6 @@
 #include <string.h>
 #include <stdio.h>
 
-struct gb_s
-{
-	mbc_t *mbc;
-	mem_t *mem;
-	cpu_t *cpu;
-	gpu_t *gpu;
-	apu_t *apu;
-	uint8_t lasttimer;
-	uint8_t timerint;
-};
-
 gb_t *gb_new(const void *mbc_data, size_t mbc_size)
 {
 	gb_t *gb = calloc(sizeof(*gb), 1);
@@ -36,7 +25,7 @@ gb_t *gb_new(const void *mbc_data, size_t mbc_size)
 		return NULL;
 	}
 
-	gb->mem = mem_new(gb->mbc);
+	gb->mem = mem_new(gb, gb->mbc);
 	if (!gb->mem)
 	{
 		fprintf(stderr, "can't create memory\n");

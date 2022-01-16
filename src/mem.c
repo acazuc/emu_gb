@@ -1,5 +1,7 @@
 #include "mem.h"
 #include "mbc.h"
+#include "apu.h"
+#include "gb.h"
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -8,7 +10,7 @@
 extern uint8_t _binary_dmgbios_bin_start;
 extern uint8_t _binary_dmgbios_bin_end;
 
-mem_t *mem_new(mbc_t *mbc)
+mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 {
 	if (&_binary_dmgbios_bin_end - &_binary_dmgbios_bin_start != 0x100)
 	{
@@ -24,6 +26,7 @@ mem_t *mem_new(mbc_t *mbc)
 	}
 
 	mem->mbc = mbc;
+	mem->gb = gb;
 	return mem;
 }
 
@@ -112,6 +115,99 @@ static void dma_set(mem_ref_t *ref, uint8_t v)
 	mem->dmatransfer = 0x9F;
 }
 
+static uint8_t nr11_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR11) & 0xC0;
+}
+
+static void nr12_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	if (!(v & 0xF8))
+		mem_set_reg(mem, MEM_REG_NR52, mem_get_reg(mem, MEM_REG_NR52) & ~(1 << 0));
+	mem_set_reg(mem, MEM_REG_NR12, v);
+}
+
+static uint8_t nr14_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR14) & (1 << 6);
+}
+
+static void nr14_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_NR14, v);
+	if (v & (1 << 7))
+		apu_start_channel1(mem->gb->apu);
+}
+
+static uint8_t nr21_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR21) & 0xC0;
+}
+
+static void nr22_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	if (!(v & 0xF8))
+		mem_set_reg(mem, MEM_REG_NR52, mem_get_reg(mem, MEM_REG_NR52) & ~(1 << 1));
+	mem_set_reg(mem, MEM_REG_NR22, v);
+}
+
+static uint8_t nr24_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR24) & (1 << 6);
+}
+
+static void nr24_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_NR24, v);
+	if (v & (1 << 7))
+		apu_start_channel2(mem->gb->apu);
+}
+
+static uint8_t nr34_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR34) & (1 << 6);
+}
+
+static void nr34_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_NR34, v);
+	if (v & (1 << 7))
+		apu_start_channel3(mem->gb->apu);
+}
+
+static uint8_t nr44_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR24) & (1 << 6);
+}
+
+static void nr44_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_NR24, v);
+	if (v & (1 << 7))
+		apu_start_channel4(mem->gb->apu);
+}
+
+static void nr52_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	if (v & (1 << 7))
+		mem_set_reg(mem, MEM_REG_NR52, (mem_get_reg(mem, MEM_REG_NR52) & 0x7F) | (1 << 7));
+	else
+		mem_set_reg(mem, MEM_REG_NR52, 0);
+}
+
 static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 {
 	if (mem->dmatransfer && !dmabypass)
@@ -171,10 +267,28 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 			return MEM_REF_ADDR(addr, div_get, div_set, mem);
 		case MEM_REG_DMA:
 			return MEM_REF_ADDR(addr, reg_get, dma_set, mem);
+		case MEM_REG_NR11:
+			return MEM_REF_ADDR(addr, nr11_get, reg_set, mem);
+		case MEM_REG_NR12:
+			return MEM_REF_ADDR(addr, reg_get, nr12_set, mem);
+		case MEM_REG_NR14:
+			return MEM_REF_ADDR(addr, nr14_get, nr14_set, mem);
+		case MEM_REG_NR21:
+			return MEM_REF_ADDR(addr, nr21_get, reg_set, mem);
+		case MEM_REG_NR22:
+			return MEM_REF_ADDR(addr, reg_get, nr22_set, mem);
+		case MEM_REG_NR24:
+			return MEM_REF_ADDR(addr, nr24_get, nr24_set, mem);
+		case MEM_REG_NR34:
+			return MEM_REF_ADDR(addr, nr34_get, nr34_set, mem);
+		case MEM_REG_NR44:
+			return MEM_REF_ADDR(addr, nr44_get, nr44_set, mem);
 		case MEM_REG_NR13:
 		case MEM_REG_NR23:
 		case MEM_REG_NR33:
 			return MEM_REF_ADDR(addr, empty_get, reg_set, mem);
+		case MEM_REG_NR52:
+			return MEM_REF_ADDR(addr, reg_get, nr52_set, mem);
 	}
 	return MEM_REF_PTR(&mem->highram[addr - 0xFF00], simple_get, simple_set);
 }
