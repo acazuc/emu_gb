@@ -29,34 +29,30 @@ void apu_del(apu_t *apu)
 
 static uint8_t channel1(apu_t *apu)
 {
-	uint8_t nr11 = mem_get_reg(apu->mem, MEM_REG_NR11);
-	uint8_t nr12 = mem_get_reg(apu->mem, MEM_REG_NR12);
-	uint8_t duty = (nr11 & 0xC0) >> 6;
-	uint8_t gain = (nr12 & 0xF0) >> 4;
-	gain = gain * apu->wave1_envval / 0xf;
+	uint8_t gain = apu->wave1_envval;
 	gain |= gain << 4;
-	return ((apu->wave1_val & 0x7) < duties[duty]) ? gain : 0;
+	return ((apu->wave1_val & 0x7) < duties[apu->wave1_duty]) ? gain : 0;
 }
 
 static uint8_t channel2(apu_t *apu)
 {
-	uint8_t nr21 = mem_get_reg(apu->mem, MEM_REG_NR21);
-	uint8_t nr22 = mem_get_reg(apu->mem, MEM_REG_NR22);
-	uint8_t duty = (nr21 & 0xC0) >> 6;
-	uint8_t gain = (nr22 & 0xF0) >> 4;
-	gain = gain * apu->wave2_envval / 0xf;
+	uint8_t gain = apu->wave2_envval;
 	gain |= gain << 4;
-	return ((apu->wave2_val & 0x7) < duties[duty]) ? gain : 0;
+	return ((apu->wave2_val & 0x7) < duties[apu->wave2_duty]) ? gain : 0;
 }
 
 static uint8_t channel3(apu_t *apu)
 {
+	if (!mem_get_reg(apu->mem, MEM_REG_NR30))
+		return 0;
 	static uint8_t gain_shifts[4] = {8, 0, 1, 2};
 	uint8_t pos = apu->wave3_val & 0x1F;
-	uint8_t sample = mem_get_reg(apu->mem, MEM_REG_WAVE + pos / 2) & (0xF0 >> ((pos & 1) * 4));
+	uint8_t sample = mem_get_reg(apu->mem, MEM_REG_WAVE + pos / 2);
+	if (pos & 1)
+		sample >>= 4;
+	sample &= 0xf;
 	uint8_t nr32 = mem_get_reg(apu->mem, MEM_REG_NR32);
-	sample >>= gain_shifts[(nr32 & 0x60) >> 5];
-	return sample | (sample << 4);
+	return (sample | (sample << 4)) >> gain_shifts[(nr32 & 0x60) >> 5];
 }
 
 static uint8_t channel4(apu_t *apu)
@@ -115,40 +111,49 @@ static apu_sample_t gen_sample(apu_t *apu)
 static void length_tick(apu_t *apu)
 {
 	uint8_t nr52 = mem_get_reg(apu->mem, MEM_REG_NR52);
-	if ((nr52 & (1 << 0)) && (mem_get_reg(apu->mem, MEM_REG_NR14) & (1 << 6)))
+	if ((nr52 & (1 << 0)) && apu->wave1_haslen)
 	{
-		uint8_t nr11 = mem_get_reg(apu->mem, MEM_REG_NR11);
-		uint8_t length = nr11 & 0x3F;
-		length++;
-		mem_set_reg(apu->mem, MEM_REG_NR11, (nr11 & 0xC0) | (length & 0x3F));
-		if (length == 0x40)
+		if (!apu->wave1_len)
 			mem_set_reg(apu->mem, MEM_REG_NR52, nr52 & ~(1 << 0));
+		else
+			apu->wave1_len--;
 	}
-	if ((nr52 & (1 << 1)) && (mem_get_reg(apu->mem, MEM_REG_NR24) & (1 << 6)))
+	if ((nr52 & (1 << 1)) && apu->wave2_haslen)
 	{
-		uint8_t nr21 = mem_get_reg(apu->mem, MEM_REG_NR21);
-		uint8_t length = nr21 & 0x3F;
-		length++;
-		mem_set_reg(apu->mem, MEM_REG_NR21, (nr21 & 0xC0) | (length & 0x3F));
-		if (length == 0x40)
+		if (!apu->wave2_len)
 			mem_set_reg(apu->mem, MEM_REG_NR52, nr52 & ~(1 << 1));
+		else
+			apu->wave2_len--;
 	}
-	if ((nr52 & (1 << 2)) && (mem_get_reg(apu->mem, MEM_REG_NR34) & (1 << 6)))
+	if ((nr52 & (1 << 2)) && apu->wave3_haslen)
 	{
-		uint8_t nr31 = mem_get_reg(apu->mem, MEM_REG_NR31);
-		nr31++;
-		mem_set_reg(apu->mem, MEM_REG_NR31, nr31);
-		if (!nr31)
+		if (!apu->wave3_len)
 			mem_set_reg(apu->mem, MEM_REG_NR52, nr52 & ~(1 << 2));
+		else
+			apu->wave3_len = 0;
 	}
-	if ((nr52 & (1 << 3)) && (mem_get_reg(apu->mem, MEM_REG_NR44) & (1 << 6)))
+	if ((nr52 & (1 << 3)) && apu->wave4_haslen)
 	{
-		uint8_t nr41 = mem_get_reg(apu->mem, MEM_REG_NR41);
-		uint8_t length = nr41 & 0x3F;
-		length++;
-		mem_set_reg(apu->mem, MEM_REG_NR41, (nr41 & 0xC0) | (length & 0x3F));
-		if (length == 0x40)
+		if (!apu->wave4_len)
 			mem_set_reg(apu->mem, MEM_REG_NR52, nr52 & ~(1 << 3));
+		else
+			apu->wave4_len--;
+	}
+}
+
+static void swp_tick(apu_t *apu)
+{
+	if (apu->wave1_swpnb && apu->wave1_swpval)
+	{
+		apu->wave1_swpval--;
+		if (++apu->wave1_swpstep >= apu->wave1_swpnb)
+		{
+			uint8_t diff = apu->wave1_nb >> (1 + apu->wave1_swptime);
+			if (apu->wave1_swpdir)
+				apu->wave1_nb -= diff;
+			else
+				apu->wave1_nb += diff;
+		}
 	}
 }
 
@@ -264,6 +269,9 @@ void apu_clock(apu_t *apu)
 	if ((apu->mem->timer & 0x3FFF) == 0)
 		length_tick(apu);
 
+	if ((apu->mem->timer & 0x7FFF) == 0)
+		swp_tick(apu);
+
 	if ((apu->mem->timer & 0xFFFF) == 0)
 		env_tick(apu);
 
@@ -272,10 +280,10 @@ void apu_clock(apu_t *apu)
 	update_channel3(apu);
 	update_channel4(apu);
 
-	if (apu->clock % 70224 == (apu->sample % APU_FRAME_SAMPLES) * 70224 / APU_FRAME_SAMPLES)
+	if (apu->clock % 70224 == apu->sample * 70224 / APU_FRAME_SAMPLES)
 	{
-		apu->data[apu->sample % APU_FRAME_SAMPLES] = gen_sample(apu);
-		apu->sample++;
+		apu->data[apu->sample] = gen_sample(apu);
+		apu->sample = (apu->sample + 1) % APU_FRAME_SAMPLES;;
 	}
 
 	apu->clock++;
@@ -284,19 +292,29 @@ void apu_clock(apu_t *apu)
 void apu_start_channel1(apu_t *apu)
 {
 	mem_set_reg(apu->mem, MEM_REG_NR52, mem_get_reg(apu->mem, MEM_REG_NR52) | (1 << 0));
+	uint8_t nr10 = mem_get_reg(apu->mem, MEM_REG_NR10);
+	uint8_t nr11 = mem_get_reg(apu->mem, MEM_REG_NR11);
 	uint8_t nr12 = mem_get_reg(apu->mem, MEM_REG_NR12);
 	uint8_t nr13 = mem_get_reg(apu->mem, MEM_REG_NR13);
 	uint8_t nr14 = mem_get_reg(apu->mem, MEM_REG_NR14);
+	apu->wave1_swptime = (nr10 & 0x7) >> 4;
+	apu->wave1_swpstep = 0;
+	apu->wave1_swpval = (nr10 & 0x7);
+	apu->wave1_swpdir = (nr10 >> 3) & 0x1;
 	apu->wave1_envval = (nr12 & 0xF0) >> 4;
 	apu->wave1_envdir = (nr12 >> 3) & 0x1;
 	apu->wave1_envnb = nr12 & 0x7;
 	apu->wave1_envstep = 0;
 	apu->wave1_nb = (1 << 2) * (2048 - (nr13 | ((nr14 & 0x7) << 8)));
+	apu->wave1_len = 64 - (nr11 & 0x3F);
+	apu->wave1_haslen = nr14 & (1 << 6);
+	apu->wave1_duty = (nr11 & 0xC0) >> 6;
 }
 
 void apu_start_channel2(apu_t *apu)
 {
 	mem_set_reg(apu->mem, MEM_REG_NR52, mem_get_reg(apu->mem, MEM_REG_NR52) | (1 << 1));
+	uint8_t nr21 = mem_get_reg(apu->mem, MEM_REG_NR21);
 	uint8_t nr22 = mem_get_reg(apu->mem, MEM_REG_NR22);
 	uint8_t nr23 = mem_get_reg(apu->mem, MEM_REG_NR23);
 	uint8_t nr24 = mem_get_reg(apu->mem, MEM_REG_NR24);
@@ -305,21 +323,29 @@ void apu_start_channel2(apu_t *apu)
 	apu->wave2_envnb = nr22 & 0x7;
 	apu->wave2_envstep = 0;
 	apu->wave2_nb = (1 << 2) * (2048 - (nr23 | ((nr24 & 0x7) << 8)));
+	apu->wave2_len = 64 - (nr21 & 0x3F);
+	apu->wave2_haslen = nr24 & (1 << 6);
+	apu->wave2_duty = (nr21 & 0xC0) >> 6;
 }
 
 void apu_start_channel3(apu_t *apu)
 {
 	mem_set_reg(apu->mem, MEM_REG_NR52, mem_get_reg(apu->mem, MEM_REG_NR52) | (1 << 2));
+	uint8_t nr31 = mem_get_reg(apu->mem, MEM_REG_NR31);
 	uint8_t nr33 = mem_get_reg(apu->mem, MEM_REG_NR33);
 	uint8_t nr34 = mem_get_reg(apu->mem, MEM_REG_NR34);
 	apu->wave3_nb = (2048 - (nr33 | ((nr34 & 0x7) << 8)));
+	apu->wave3_len = 256 - nr31;
+	apu->wave3_haslen = nr34 & (1 << 6);
 }
 
 void apu_start_channel4(apu_t *apu)
 {
 	mem_set_reg(apu->mem, MEM_REG_NR52, mem_get_reg(apu->mem, MEM_REG_NR52) | (1 << 3));
+	uint8_t nr41 = mem_get_reg(apu->mem, MEM_REG_NR41);
 	uint8_t nr42 = mem_get_reg(apu->mem, MEM_REG_NR42);
 	uint8_t nr43 = mem_get_reg(apu->mem, MEM_REG_NR43);
+	uint8_t nr44 = mem_get_reg(apu->mem, MEM_REG_NR44);
 	apu->wave4_envval = (nr42 & 0xF0) >> 4;
 	apu->wave4_envdir = (nr42 >> 3) & 0x1;
 	apu->wave4_envnb = nr42 & 0x7;
@@ -331,4 +357,6 @@ void apu_start_channel4(apu_t *apu)
 		apu->wave4_nb = (1u << 3) * (r * (1u << (s + 1)));
 	else
 		apu->wave4_nb = (1u << 3) * (1u << s);
+	apu->wave4_len = 64 - (nr41 & 0x3F);
+	apu->wave4_haslen = nr44 & (1 << 6);
 }

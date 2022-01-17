@@ -171,6 +171,18 @@ static void nr24_set(mem_ref_t *ref, uint8_t v)
 		apu_start_channel2(mem->gb->apu);
 }
 
+static uint8_t nr30_get(mem_ref_t *ref)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	return mem_get_reg(mem, MEM_REG_NR30) & 0x80;
+}
+
+static void nr30_set(mem_ref_t *ref, uint8_t v)
+{
+	mem_t *mem = (mem_t*)ref->udata;
+	mem_set_reg(mem, MEM_REG_NR30, v & 0x80);
+}
+
 static uint8_t nr34_get(mem_ref_t *ref)
 {
 	mem_t *mem = (mem_t*)ref->udata;
@@ -279,6 +291,8 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 			return MEM_REF_ADDR(addr, reg_get, nr22_set, mem);
 		case MEM_REG_NR24:
 			return MEM_REF_ADDR(addr, nr24_get, nr24_set, mem);
+		case MEM_REG_NR30:
+			return MEM_REF_ADDR(addr, nr30_get, nr30_set, mem);
 		case MEM_REG_NR34:
 			return MEM_REF_ADDR(addr, nr34_get, nr34_set, mem);
 		case MEM_REG_NR44:
