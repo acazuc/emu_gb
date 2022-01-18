@@ -62,6 +62,13 @@
 typedef struct mbc_s mbc_t;
 typedef struct gb_s gb_t;
 
+enum cgb_mode
+{
+	CGB_YES,
+	CGB_NO,
+	CGB_FORCE,
+};
+
 typedef struct mem_s
 {
 	uint8_t bios[0x1000];
@@ -77,7 +84,7 @@ typedef struct mem_s
 	uint8_t joyp;
 	uint8_t dmatransfer;
 	uint16_t timer;
-	bool cgb;
+	enum cgb_mode cgb;
 	mbc_t *mbc;
 	gb_t *gb;
 } mem_t;

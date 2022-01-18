@@ -34,7 +34,7 @@ mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 		return NULL;
 	}
 
-	mem->cgb = (mbc->data[0x143] & 0x80) != 0; //XXX
+	mem->cgb = CGB_FORCE; //(mbc->data[0x143] & 0x80) != 0;
 	if (mem->cgb)
 	{
 		size_t i = 0;
@@ -251,7 +251,7 @@ static uint8_t get(mem_t *mem, uint16_t addr)
 			return mem->bios[addr];
 	}
 
-	if (mem->cgb && addr >= 0x200 && addr <= 0x1000)
+	if (mem->cgb != CGB_NO && addr >= 0x200 && addr <= 0x1000)
 	{
 		if (!mem_get_reg(mem, MEM_REG_BOOT))
 			return mem->bios[addr];

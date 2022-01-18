@@ -38,7 +38,7 @@ static void render_tile_dmg(gpu_t *gpu, uint16_t addr, uint8_t x, uint8_t y, uin
 
 static void render_tile_cgb(gpu_t *gpu, uint16_t addr, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t attr)
 {
-	uint8_t palette = attr & 0x7;
+	uint8_t palette = gpu->mem->cgb == CGB_YES ? (attr & 0x7) : 0;
 	uint8_t coloridx;
 	if (attr & (1 << 5))
 		bx = 7 - bx;
@@ -54,6 +54,8 @@ static void render_tile_cgb(gpu_t *gpu, uint16_t addr, uint8_t x, uint8_t y, uin
 		coloridx = (((mem_get_vram0(gpu->mem, addr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
 	             | (((mem_get_vram0(gpu->mem, addr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	}
+	if (gpu->mem->cgb == CGB_FORCE)
+		coloridx = (mem_get_reg(gpu->mem, MEM_REG_BGP) >> (coloridx << 1)) & 0x3;
 	uint8_t *palptr = &gpu->mem->bgpalette[palette * 8 + coloridx * 2];
 #define TO8(v) (((uint32_t)(v) * 527 + 23) >> 6)
 	uint8_t color[4] =
@@ -122,12 +124,15 @@ static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 	uint8_t orgbx = bx;
 	bool palette = (attr >> 4) & 1;
 	bool prio = (attr >> 7) & 1;
+	uint8_t bot = by >= 8;
 	if (attr & (1 << 5))
 		bx = 7 - bx;
 	if (attr & (1 << 6))
 		by = (height16 ? 15 : 7) - by;
 	if (height16)
 		charcode &= ~1;
+	if (bot)
+		charcode++;
 	uint16_t charaddr = 0x8000 + charcode * 16;
 	uint8_t pixel = (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
 	              | (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
@@ -147,25 +152,28 @@ static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16)
 {
 	uint8_t orgbx = bx;
-	bool palette = attr & 0x3;
+	bool palette = gpu->mem->cgb == CGB_YES ? (attr & 0x3) : ((attr >> 4) & 1);
 	bool prio = (attr >> 7) & 1;
+	uint8_t bot = by >= 8;
 	if (attr & (1 << 5))
 		bx = 7 - bx;
 	if (attr & (1 << 6))
 		by = (height16 ? 15 : 7) - by;
 	if (height16)
 		charcode &= ~1;
+	if (bot)
+		charcode++;
 	uint16_t charaddr = 0x8000 + charcode * 16;
 	uint8_t coloridx;
 	if (attr & (1 << 3))
 	{
 		coloridx = (((mem_get_vram1(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
-	             | (((mem_get_vram1(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
+		         | (((mem_get_vram1(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	}
 	else
 	{
 		coloridx = (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
-	             | (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
+		         | (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	}
 	if (!coloridx)
 		return;
@@ -173,6 +181,8 @@ static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 		return;
 	if (orgbx >= gpu->lowestx[x])
 		return;
+	if (gpu->mem->cgb == CGB_FORCE)
+		coloridx = (mem_get_reg(gpu->mem, palette ? MEM_REG_OBP1 : MEM_REG_OBP0) >> (coloridx << 1)) & 3;
 	uint8_t *palptr = &gpu->mem->objpalette[palette * 8 + coloridx * 2];
 #define TO8(v) (((uint32_t)(v) * 527 + 23) >> 6)
 	uint8_t color[4] =
@@ -213,7 +223,7 @@ static void render_objects(gpu_t *gpu, uint8_t y)
 				render_object_dmg(gpu, tx, y, x, y - cy + 16, charcode, cattr, height16);
 		}
 		if (++spritecount == 10)
-			return;
+			break;
 	}
 }
 
@@ -227,7 +237,7 @@ void gpu_render_line(gpu_t *gpu, uint8_t y)
 
 	memset(gpu->priorities, 0, sizeof(gpu->priorities));
 	memset(gpu->hasprinted, 0, sizeof(gpu->hasprinted));
-	if (gpu->mem->cgb || mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 0))
+	if (gpu->mem->cgb != CGB_NO || mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 0))
 	{
 		render_background(gpu, y);
 		if (mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 5))
