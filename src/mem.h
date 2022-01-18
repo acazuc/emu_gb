@@ -65,30 +65,8 @@ typedef struct mem_s
 	gb_t *gb;
 } mem_t;
 
-typedef struct mem_ref_s mem_ref_t;
-typedef uint8_t (*mem_ref_get_t)(mem_ref_t *ref);
-typedef void (*mem_ref_set_t)(mem_ref_t *ref, uint8_t v);
-
-struct mem_ref_s
-{
-	union
-	{
-		uint8_t *ptr;
-		uint16_t addr;
-	};
-	mem_ref_get_t get;
-	mem_ref_set_t set;
-	void *udata;
-};
-
-#define MEM_REF_NULL() ((mem_ref_t){.ptr = NULL, NULL, NULL, NULL})
-#define MEM_REF_PTR(p, get, set) ((mem_ref_t){.ptr = p, get, set, NULL})
-#define MEM_REF_ADDR(a, get, set, udata) ((mem_ref_t){.addr = a, get, set, udata})
-
 mem_t *mem_new(gb_t *gb, mbc_t *mbc);
 void mem_del(mem_t *mem);
-
-void mem_set_joyp(mem_t *mem, uint8_t joyp);
 
 void mem_dmatransfer(mem_t *mem);
 

@@ -8,8 +8,7 @@ LD = ld
 
 LDFLAGS = -shared -static-libgcc -Wl,--version-script=link.T -Wl,--no-undefined
 
-INCLUDES_PATH = -I src
-INCLUDES_PATH+= -I lib
+INCLUDES = -I include
 
 SRCS_PATH = src/
 
@@ -42,12 +41,14 @@ all: odir $(NAME)
 $(NAME): $(OBJS)
 	@echo "LD dmgbios"
 	@$(LD) -r -b binary -o dmgbios.o dmgbios.bin
+	@echo "LD cgbbios"
+	@$(LD) -r -b binary -o cgbbios.o cgbbios.bin
 	@echo "LD $(NAME)"
-	@$(LD) -fPIC -shared -o $(NAME) $(OBJS) dmgbios.o
+	@$(LD) -fPIC -shared -o $(NAME) $(OBJS) dmgbios.o cgbbios.o
 
 $(OBJS_PATH)%.o: $(SRCS_PATH)%.c
 	@echo "CC $<"
-	@$(CC) $(CFLAGS) -o $@ -c $< $(INCLUDES_PATH)
+	@$(CC) $(CFLAGS) -o $@ -c $< $(INCLUDES)
 
 odir:
 	@mkdir -p $(OBJS_PATH)

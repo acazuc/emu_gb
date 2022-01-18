@@ -138,54 +138,74 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad)
 		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 4));
 	}
 
+
 	for (size_t y = 0; y < 144; ++y)
 	{
-		uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);
-		mem_set_reg(gb->mem, MEM_REG_LY, y);
-		if ((mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 6)) && lyc == y)
-			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+		if (mem_get_reg(gb->mem, MEM_REG_LCDC) & (1 << 7))
+		{
+			uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);
+			mem_set_reg(gb->mem, MEM_REG_LY, y);
+			if ((mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 6)) && lyc == y)
+				mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
 
-		if (lyc == y)
-			mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) | (1 << 2));
-		else
-			mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) & ~(1 << 2));
+			if (lyc == y)
+				mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) | (1 << 2));
+			else
+				mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) & ~(1 << 2));
 
-		/* mode 2: oam */
-		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 2);
-		if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 5))
-			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+			/* mode 2: oam */
+			mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 2);
+			if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 5))
+				mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+		}
+
 		gb_clock(gb, 80);
 
-		/* mode 3: lcd data */
-		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 3);
+		if (mem_get_reg(gb->mem, MEM_REG_LCDC) & (1 << 7))
+		{
+			/* mode 3: lcd data */
+			mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 3);
+		}
+
 		gb_clock(gb, 172);
 
 		gpu_render_line(gb->gpu, y);
 
-		/* mode 0: hblank */
-		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 0);
-		if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 3))
-			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+		if (mem_get_reg(gb->mem, MEM_REG_LCDC) & (1 << 7))
+		{
+			/* mode 0: hblank */
+			mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 0);
+			if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 3))
+				mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+		}
+
 		gb_clock(gb, 204);
 	}
 
-	/* mode 1: vblank */
-	mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 1);
-	if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 4))
-		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
-	mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 0));
+	if (mem_get_reg(gb->mem, MEM_REG_LCDC) & (1 << 7))
+	{
+		/* mode 1: vblank */
+		mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 1);
+		if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 4))
+			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 0));
+	}
+
 	for (size_t y = 144; y < 154; ++y)
 	{
-		uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);
-		mem_set_reg(gb->mem, MEM_REG_LY, y);
+		if (mem_get_reg(gb->mem, MEM_REG_LCDC) & (1 << 7))
+		{
+			uint8_t lyc = mem_get_reg(gb->mem, MEM_REG_LYC);
+			mem_set_reg(gb->mem, MEM_REG_LY, y);
 
-		if ((mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 6)) && lyc == y)
-			mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
+			if ((mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 6)) && lyc == y)
+				mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));
 
-		if (lyc == y)
-			mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) | (1 << 2));
-		else
-			mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) & ~(1 << 2));
+			if (lyc == y)
+				mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) | (1 << 2));
+			else
+				mem_set_reg(gb->mem, MEM_REG_STAT, mem_get_reg(gb->mem, MEM_REG_STAT) & ~(1 << 2));
+		}
 
 		gb_clock(gb, 456);
 	}

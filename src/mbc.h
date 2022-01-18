@@ -36,6 +36,8 @@ typedef struct mbc_s
 	uint8_t *data;
 	size_t size;
 	enum mbc_type type;
+	uint8_t *rambankptr;
+	uint8_t *rombankptr;
 	uint8_t rambanksnb;
 	uint8_t *rambanks;
 	uint8_t ramenabled;
@@ -43,13 +45,13 @@ typedef struct mbc_s
 	uint8_t rambank;
 	uint8_t rombank;
 	uint8_t options;
+	uint8_t bankmode;
 } mbc_t;
 
 mbc_t *mbc_new(const void *data, size_t len);
 void mbc_del(mbc_t *mbc);
 
-mem_ref_t mbc_get_rom0(mbc_t *mbc, uint16_t addr);
-mem_ref_t mbc_get_romn(mbc_t *mbc, uint16_t addr);
-mem_ref_t mbc_get_ram(mbc_t *mbc, uint16_t addr);
+uint8_t mbc_get(mbc_t *mbc, uint16_t addr);
+void    mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v);
 
 #endif

@@ -5,6 +5,13 @@
 #include <stdint.h>
 #include <stdio.h>
 
+static void mbc1_update_rombank(mbc_t *mbc);
+static void mbc1_update_rambank(mbc_t *mbc);
+static void mbc2_update_rombank(mbc_t *mbc);
+static void mbc2_update_rambank(mbc_t *mbc);
+static void mbc3_update_rombank(mbc_t *mbc);
+static void mbc3_update_rambank(mbc_t *mbc);
+
 mbc_t *mbc_new(const void *data, size_t len)
 {
 	if (len < 0x150)
@@ -20,7 +27,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 		return NULL;
 	}
 
-	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 2;
+	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 1;
 	uint8_t rambanks;
 	switch (((uint8_t*)data)[0x149])
 	{
@@ -68,10 +75,12 @@ mbc_t *mbc_new(const void *data, size_t len)
 		case 0x5: /* mbc2 */
 			mbctype = MBC2;
 			options = MBC_OPT_NONE;
+			rambanks = 1;
 			break;
 		case 0x6: /* mbc2 + battery */
 			mbctype = MBC2;
 			options = MBC_OPT_BATTERY;
+			rambanks = 1;
 			break;
 		case 0x8: /* rom + ram */
 			fprintf(stderr, "unsupported rom type\n");
@@ -164,7 +173,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 			return NULL;
 	}
 
-	mbc_t *mbc = malloc(sizeof(*mbc));
+	mbc_t *mbc = calloc(sizeof(*mbc), 1);
 	if (mbc == NULL)
 	{
 		fprintf(stderr, "allocation failed\n");
@@ -185,12 +194,34 @@ mbc_t *mbc_new(const void *data, size_t len)
 	mbc->rombanksnb = rombanks;
 	mbc->type = mbctype;
 	mbc->options = options;
-	mbc->rambanks = calloc(1, 0x2000 * rambanks);
-	if (!mbc->rambanks)
+	if (rambanks && !mbc->rambanks)
 	{
-		fprintf(stderr, "allocation failed\n");
-		return NULL;
+		mbc->rambanks = calloc(1, 0x2000 * rambanks);
+		if (!mbc->rambanks)
+		{
+			fprintf(stderr, "allocation failed\n");
+			return NULL;
+		}
 	}
+
+	switch (mbc->type)
+	{
+		case MBC1:
+			mbc1_update_rombank(mbc);
+			mbc1_update_rambank(mbc);
+			break;
+		case MBC2:
+			mbc2_update_rombank(mbc);
+			mbc2_update_rambank(mbc);
+			break;
+		case MBC3:
+			mbc3_update_rombank(mbc);
+			mbc3_update_rambank(mbc);
+			break;
+		default:
+			break;
+	}
+
 	return mbc;
 }
 
@@ -204,181 +235,308 @@ void mbc_del(mbc_t *mbc)
 	free(mbc);
 }
 
-static uint8_t rom0_get(mem_ref_t *ref)
+static void mbc1_update_rombank(mbc_t *mbc)
 {
-	mbc_t *mbc = (mbc_t*)ref->udata;
-	switch (mbc->type)
+	uint8_t rombank;
+
+	if (!mbc->bankmode)
+		rombank = mbc->rombank | ((mbc->rambank & 3) << 5);
+	else
+		rombank = mbc->rombank;
+
+	if (!(rombank & 0x1f))
+		rombank++;
+
+	if (rombank > mbc->rombanksnb)
 	{
-		case MBC_ROM:
-		case MBC1:
-		case MBC2:
-		case MBC3:
-		case MBC5:
-		case MBC6:
-		case MBC7:
-		case MBC_HUC1:
-		case MBC_HUC3:
-		case MBC_MMM1:
-		case MBC_CAM:
-		case MBC_TAMA5:
-			if (ref->addr < mbc->size)
-				return mbc->data[ref->addr];
-			return 0;
+		fprintf(stderr, "invalid mbc1 rombank: %x / %x\n", rombank, mbc->rombanksnb);
+		mbc->rombankptr = NULL;
+		return;
 	}
-	return 0;
+
+	mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
 }
 
-static void rom0_set(mem_ref_t *ref, uint8_t v)
+static void mbc1_update_rambank(mbc_t *mbc)
 {
-	mbc_t *mbc = (mbc_t*)ref->udata;
-	switch (mbc->type)
+	if (!mbc->ramenabled)
 	{
-		case MBC_ROM:
-			return;
-		case MBC1:
-		case MBC3:
-			if (ref->addr < 0x2000)
-			{
-				fprintf(stderr, "mbc[%04x] = %02x\n", ref->addr, v);
-				mbc->ramenabled = ((v & 0x0F) == 0xA);
-			}
-			else
-			{
-				mbc->rombank = v & 0x7F;
-				if (mbc->rombank > 0)
-					mbc->rombank--;
-			}
-			return;
-		case MBC2:
-			if (ref->addr & 0x100)
-			{
-				mbc->ramenabled = ((v & 0x0F) == 0xA);
-			}
-			else
-			{
-				mbc->rombank = v & 0xF;
-				if (mbc->rombank != 0)
-					mbc->rombank--;
-			}
-			return;
+		mbc->rambankptr = NULL;
+		return;
 	}
-}
 
-static uint8_t romn_get(mem_ref_t *ref)
-{
-	mbc_t *mbc = (mbc_t*)ref->udata;
-	switch (mbc->type)
+	if (!mbc->bankmode)
 	{
-		case MBC_ROM:
-			if (ref->addr < mbc->size)
-				return mbc->data[ref->addr];
-			return 0;
-		case MBC1:
-		case MBC2:
-		case MBC3:
-		case MBC5:
-		case MBC6:
-		case MBC7:
-		case MBC_HUC1:
-		case MBC_HUC3:
-		case MBC_MMM1:
-		case MBC_CAM:
-		case MBC_TAMA5:
-		{
-			uint8_t rombank = mbc->rombank;
-			if (rombank >= mbc->rombanksnb)
-			{
-				fprintf(stderr, "invalid rom bank: %x / %x", rombank, mbc->rombanksnb);
-				return 0;
-			}
-			uint32_t addr = ref->addr + 0x4000 * rombank;
-			if (addr < mbc->size)
-				return mbc->data[addr];
-			fprintf(stderr, "invalid rom size: %x / %x", addr, (unsigned)mbc->size);
-			return 0;
-		}
+		mbc->rambankptr = mbc->rambanks;
+		return;
 	}
-	return 0;
-}
 
-static void romn_set(mem_ref_t *ref, uint8_t v)
-{
-	mbc_t *mbc = (mbc_t*)ref->udata;
-	switch (mbc->type)
-	{
-		case MBC_ROM:
-			return;
-		case MBC1:
-			return;
-		case MBC3:
-			fprintf(stderr, "mbc[%04x] = %02x\n", ref->addr, v);
-			if (ref->addr < 0x6000)
-				mbc->rambank = v;
-			else
-				return; //XXX: latch clock
-			return;
-	}
-}
-
-static uint8_t ram_get(mem_ref_t *ref)
-{
-	mbc_t *mbc = (mbc_t*)ref->udata;
-	if (!(mbc->options & MBC_OPT_RAM))
-		return 0;
-	switch (mbc->type)
-	{
-		case MBC3:
-			if (mbc->rambank > 0x3)	
-			{
-				fprintf(stderr, "unsupported clock get\n");
-				return 0; //XXX: clock
-			}
-			break;
-		default:
-			break;
-	}
 	if (mbc->rambank >= mbc->rambanksnb)
 	{
-		fprintf(stderr, "invalid ram bank: %x / %x\n", mbc->rambank, mbc->rambanksnb);
-		return 0;
+		fprintf(stderr, "invalid mbc1 rambank: %x / %x\n", mbc->rambank, mbc->rambanksnb);
+		mbc->rambankptr = NULL;
+		return;
 	}
-	return mbc->rambanks[ref->addr - 0xA000 + 0x2000 * mbc->rambank];
+
+	mbc->rambankptr = &mbc->rambanks[0x2000 * mbc->rambank];
 }
 
-static void ram_set(mem_ref_t *ref, uint8_t v)
+static void mbc2_update_rombank(mbc_t *mbc)
 {
-	mbc_t *mbc = (mbc_t*)ref->udata;
-	if (!(mbc->options & MBC_OPT_RAM))
+	uint8_t rombank = mbc->rombank;
+
+	if (!rombank)
+		rombank++;
+
+	if (rombank > mbc->rombanksnb)
+	{
+		fprintf(stderr, "invalid mbc2 rombank: %x / %x\n", rombank, mbc->rombanksnb);
+		mbc->rombankptr = NULL;
 		return;
+	}
+
+	mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+}
+
+static void mbc2_update_rambank(mbc_t *mbc)
+{
+	if (!mbc->ramenabled)
+	{
+		mbc->rambankptr = NULL;
+		return;
+	}
+
+	mbc->rambankptr = &mbc->rambanks[0];
+}
+
+static void mbc3_update_rombank(mbc_t *mbc)
+{
+	if (mbc->rombank > mbc->rombanksnb)
+	{
+		fprintf(stderr, "invalid mbc3 rombank: %x / %x\n", mbc->rombank, mbc->rombanksnb);
+		mbc->rombankptr = NULL;
+		return;
+	}
+
+	if (mbc->rombank)
+		mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+	else
+		mbc->rombankptr = &mbc->data[0x4000];
+}
+
+static void mbc3_update_rambank(mbc_t *mbc)
+{
+	if (!mbc->ramenabled)
+	{
+		mbc->rambankptr = NULL;
+		return;
+	}
+
+	if (mbc->rambank < 0x4 && mbc->rambank >= mbc->rambanksnb)
+	{
+		fprintf(stderr, "invalid mbc3 rambank: %x / %x\n", mbc->rambank, mbc->rambanksnb);
+		mbc->rambankptr = NULL;
+		return;
+	}
+
+	mbc->rambankptr = &mbc->rambanks[0x2000 * mbc->rambank];
+}
+
+uint8_t mbc_get(mbc_t *mbc, uint16_t addr)
+{
+	if (addr < 0x4000)
+	{
+		if (addr < mbc->size)
+			return mbc->data[addr];
+		fprintf(stderr, "rom too short: %x / %x\n", addr, (unsigned)mbc->size);
+		return 0;
+	}
+
 	switch (mbc->type)
 	{
-		case MBC3:
-			if (mbc->rambank > 0x3)
+		case MBC_ROM:
+			if (addr < 0x8000)
 			{
-				fprintf(stderr, "unsupported clock set\n");
+				if (addr < mbc->size)
+					return mbc->data[addr];
+				fprintf(stderr, "rom too short: %x / %x\n", addr, (unsigned)mbc->size);
+			}
+			return 0;
+		case MBC1:
+			if (addr < 0x8000)
+			{
+				if (!mbc->rombankptr)
+					return 0;
+				return mbc->rombankptr[addr - 0x4000];
+			}
+			if (addr < 0xC000)
+			{
+				if (!mbc->rambankptr)
+					return 0;
+				return mbc->rambankptr[addr - 0xA000];
+			}
+			return 0;
+		case MBC2:
+			if (addr < 0x8000)
+			{
+				if (!mbc->rombankptr)
+					return 0;
+				return mbc->rombankptr[addr - 0x4000];
+			}
+			if (addr < 0xC000)
+			{
+				if (!mbc->rambankptr)
+					return 0;
+				return mbc->rambankptr[addr - 0xA000] & 0xf;
+			}
+			return 0;
+		case MBC3:
+			if (addr < 0x8000)
+			{
+				if (!mbc->rombankptr)
+					return 0;
+				return mbc->rombankptr[addr - 0x4000];
+			}
+			if (addr < 0xC000)
+			{
+				if (mbc->rambank > 0x3)
+				{
+					//XXX: clock
+					return 0;
+				}
+				if (!mbc->rambankptr)
+					return 0;
+				return mbc->rambankptr[addr - 0xA000];
+			}
+			return 0;
+		case MBC5:
+		case MBC6:
+		case MBC7:
+		case MBC_HUC1:
+		case MBC_HUC3:
+		case MBC_MMM1:
+		case MBC_CAM:
+		case MBC_TAMA5:
+			return 0;
+	}
+	return 0;
+}
+
+void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
+{
+	switch (mbc->type)
+	{
+		case MBC_ROM:
+			return;
+		case MBC1:
+			if (addr < 0x2000)
+			{
+				mbc->ramenabled = ((v & 0x0F) == 0xA);
+				mbc1_update_rambank(mbc);
 				return;
 			}
-			break;
+			if (addr < 0x4000)
+			{
+				mbc->rombank = v & 0x1F;
+				mbc1_update_rombank(mbc);
+				return;
+			}
+			if (addr < 0x6000)
+			{
+				mbc->rambank = v & 0x3;
+				mbc1_update_rombank(mbc);
+				mbc1_update_rambank(mbc);
+				return;
+			}
+			if (addr < 0x8000)
+			{
+				mbc->bankmode = v & 1;
+				mbc1_update_rombank(mbc);
+				mbc1_update_rambank(mbc);
+				return;
+			}
+
+			if (!mbc->rambankptr)
+				return;
+			mbc->rambankptr[addr - 0xA000] = v;
+			return;
+		case MBC2:
+			if (addr < 0x2000)
+			{
+				mbc->ramenabled = ((v & 0x0F) == 0xA);
+				mbc2_update_rambank(mbc);
+				return;
+			}
+			if (addr < 0x4000)
+			{
+				mbc->rombank = v;
+				mbc2_update_rombank(mbc);
+				return;
+			}
+			if (addr < 0xA000)
+				return;
+
+			if (!mbc->rambankptr)
+				return;
+
+			addr -= 0xA000;
+			if (addr > 0x1FF)
+			{
+				fprintf(stderr, "invalid RAM write: %x\n", 0xA000 + addr);
+				return;
+			}
+
+			mbc->rambankptr[addr] = v & 0xf;
+			return;
+		case MBC3:
+			if (addr < 0x2000)
+			{
+				mbc->ramenabled = ((v & 0x0F) == 0xA);
+				mbc3_update_rambank(mbc);
+				return;
+			}
+			if (addr < 0x4000)
+			{
+				mbc->rombank = v & 0x7F;
+				mbc3_update_rombank(mbc);
+				return;
+			}
+			if (addr < 0x6000)
+			{
+				mbc->rambank = v;
+				mbc3_update_rambank(mbc);
+				return;
+			}
+			if (addr < 0x8000)
+			{
+				fprintf(stderr, "unsupported clock: [%x] = %x\n", addr, v);
+				return;
+			}
+			if (mbc->rambank > 0x3)
+			{
+				fprintf(stderr, "unsupported rtc\n");
+				return;
+			}
+
+			if (!mbc->rambankptr)
+				return;
+			mbc->rambankptr[addr - 0xA000] = v;
+			return;
+		case MBC5:
+			return;
+		case MBC6:
+			return;
+		case MBC7:
+			return;
+		case MBC_HUC1:
+			return;
+		case MBC_HUC3:
+			return;
+		case MBC_MMM1:
+			return;
+		case MBC_CAM:
+			return;
+		case MBC_TAMA5:
+			return;
 	}
-	if (mbc->rambank >= mbc->rambanksnb)
-	{
-		fprintf(stderr, "invalid ram bank: %x / %x\n", mbc->rambank, mbc->rambanksnb);
-		return;
-	}
-	mbc->rambanks[ref->addr - 0xA000 + 0x2000 * mbc->rambank] = v;
-}
-
-mem_ref_t mbc_get_rom0(mbc_t *mbc, uint16_t addr)
-{
-	return MEM_REF_ADDR(addr, rom0_get, rom0_set, mbc);
-}
-
-mem_ref_t mbc_get_romn(mbc_t *mbc, uint16_t addr)
-{
-	return MEM_REF_ADDR(addr, romn_get, romn_set, mbc);
-}
-
-mem_ref_t mbc_get_ram(mbc_t *mbc, uint16_t addr)
-{
-	return MEM_REF_ADDR(addr, ram_get, ram_set, mbc);
 }
