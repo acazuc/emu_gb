@@ -44,7 +44,19 @@
 #define MEM_REG_OBP1 0xFF49
 #define MEM_REG_WY   0xFF4A
 #define MEM_REG_WX   0xFF4B
+#define MEM_REG_VBK  0xFF4F
 #define MEM_REG_BOOT 0xFF50
+#define MEM_REG_HDM1 0xFF51
+#define MEM_REG_HDM2 0xFF52
+#define MEM_REG_HDM3 0xFF53
+#define MEM_REG_HDM4 0xFF54
+#define MEM_REG_HDM5 0xFF55
+#define MEM_REG_BCPS 0xFF68
+#define MEM_REG_BCPD 0xFF69
+#define MEM_REG_OCPS 0xFF6A
+#define MEM_REG_OCPD 0xFF6B
+#define MEM_REG_OPRI 0xFF6C
+#define MEM_REG_SVBK 0xFF70
 #define MEM_REG_IE   0xFFFF
 
 typedef struct mbc_s mbc_t;
@@ -52,15 +64,20 @@ typedef struct gb_s gb_t;
 
 typedef struct mem_s
 {
-	uint8_t bios[0x100];
-	uint8_t vram[0x2000];
+	uint8_t bios[0x1000];
+	uint8_t vram[0x4000];
 	uint8_t workram0[0x1000];
-	uint8_t workram1[0x1000];
+	uint8_t workram1[0x7000];
 	uint8_t oam[0xA0];
 	uint8_t highram[0x100];
+	uint8_t objpalette[64];
+	uint8_t bgpalette[64];
+	uint8_t svbk;
+	uint8_t vbk;
 	uint8_t joyp;
 	uint8_t dmatransfer;
 	uint16_t timer;
+	bool cgb;
 	mbc_t *mbc;
 	gb_t *gb;
 } mem_t;
@@ -80,11 +97,18 @@ static inline void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
 	mem->highram[addr - 0xFF00] = v;
 }
 
-static inline uint8_t mem_get_vram(mem_t *mem, uint16_t addr)
+static inline uint8_t mem_get_vram0(mem_t *mem, uint16_t addr)
 {
 	if (mem->dmatransfer)
 		return 0;
 	return mem->vram[addr - 0x8000];
+}
+
+static inline uint8_t mem_get_vram1(mem_t *mem, uint16_t addr)
+{
+	if (mem->dmatransfer)
+		return 0;
+	return mem->vram[addr - 0x8000 + 0x2000];
 }
 
 static inline uint8_t mem_get_oam(mem_t *mem, uint16_t addr)

@@ -172,7 +172,11 @@ static void env_tick(apu_t *apu)
 			else
 			{
 				if (apu->wave1_envval > 0)
+				{
 					apu->wave1_envval--;
+					if (!apu->wave1_envval)
+						nr52 &= ~(1 << 0);
+				}
 			}
 			apu->wave1_envstep = 0;
 		}
@@ -189,7 +193,11 @@ static void env_tick(apu_t *apu)
 			else
 			{
 				if (apu->wave2_envval > 0)
+				{
 					apu->wave2_envval--;
+					if (!apu->wave2_envval)
+						nr52 &= ~(1 << 1);
+				}
 			}
 			apu->wave2_envstep = 0;
 		}
@@ -206,11 +214,16 @@ static void env_tick(apu_t *apu)
 			else
 			{
 				if (apu->wave4_envval > 0)
+				{
 					apu->wave4_envval--;
+					if (!apu->wave4_envval)
+						nr52 &= ~(1 << 3);
+				}
 			}
 			apu->wave4_envstep = 0;
 		}
 	}
+	mem_set_reg(apu->mem, MEM_REG_NR52, nr52);
 }
 
 static void update_channel1(apu_t *apu)

@@ -5,10 +5,13 @@
 
 #include <inttypes.h>
 #include <stdlib.h>
+#include <string.h>
 #include <stdio.h>
 
 extern uint8_t _binary_dmgbios_bin_start;
 extern uint8_t _binary_dmgbios_bin_end;
+extern uint8_t _binary_cgbbios_bin_start;
+extern uint8_t _binary_cgbbios_bin_end;
 
 mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 {
@@ -18,11 +21,31 @@ mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 		return NULL;
 	}
 
-	mem_t *mem = calloc(sizeof(*mem), 1);
+	if (&_binary_cgbbios_bin_end - &_binary_cgbbios_bin_start != 0x900)
+	{
+		fprintf(stderr, "invalid dmgbios data: %u\n", (unsigned)(&_binary_cgbbios_bin_end - &_binary_cgbbios_bin_start));
+		return NULL;
+	}
+
+	mem_t *mem = calloc(1, sizeof(*mem));
 	if (!mem)
 	{
 		fprintf(stderr, "allocation failed\n");
 		return NULL;
+	}
+
+	mem->cgb = (mbc->data[0x143] & 0x80) != 0; //XXX
+	if (mem->cgb)
+	{
+		size_t i = 0;
+		for (uint8_t *s = &_binary_cgbbios_bin_start; s < &_binary_cgbbios_bin_end; ++s)
+			mem->bios[i++] = *s;
+	}
+	else
+	{
+		size_t i = 0;
+		for (uint8_t *s = &_binary_dmgbios_bin_start; s < &_binary_dmgbios_bin_end; ++s)
+			mem->bios[i++] = *s;
 	}
 
 	mem->mbc = mbc;
@@ -165,20 +188,80 @@ static void nr52_set(mem_t *mem, uint8_t v)
 		mem_set_reg(mem, MEM_REG_NR52, 0);
 }
 
+static void bcpd_set(mem_t *mem, uint8_t v)
+{
+	uint8_t bcps = mem_get_reg(mem, MEM_REG_BCPS);
+	mem->bgpalette[bcps & 0x3F] = v;
+	if (bcps & (1 << 7))
+		mem_set_reg(mem, MEM_REG_BCPS, (bcps & 0xB0) | (((bcps & 0x3F) + 1) & 0x3F));
+}
+
+static void ocpd_set(mem_t *mem, uint8_t v)
+{
+	uint8_t ocps = mem_get_reg(mem, MEM_REG_OCPS);
+	mem->objpalette[ocps & 0x3F] = v;
+	if (ocps & (1 << 7))
+		mem_set_reg(mem, MEM_REG_OCPS, (ocps & 0xB0) | (((ocps & 0x3F) + 1) & 0x3F));
+}
+
+static void svbk_set(mem_t *mem, uint8_t v)
+{
+	if (!mem->cgb)
+		return;
+	v &= 0x7;
+	if (v)
+		v--;
+	mem->svbk = v;
+}
+
+static void vbk_set(mem_t *mem, uint8_t v)
+{
+	if (!mem->cgb)
+		return;
+	mem->vbk = v & 1;
+}
+
+static void hdm5_set(mem_t *mem, uint8_t v)
+{
+	if (!mem->cgb)
+		return;
+	uint16_t src = ((mem_get_reg(mem, MEM_REG_HDM1) << 8) | mem_get_reg(mem, MEM_REG_HDM2)) & 0xFFF0;
+	uint16_t dst = ((mem_get_reg(mem, MEM_REG_HDM3) << 8) | mem_get_reg(mem, MEM_REG_HDM4)) & 0x1FF0;
+	dst += 0x8000;
+	uint16_t len = ((v & 0x7F) + 1) << 4;
+	fprintf(stderr, "hdma write %04x from %04x to %04x\n", len, src, dst);
+	if (v & (1 << 7))
+	{
+		//XXX
+		fprintf(stderr, "not supported\n");
+		//return;
+	}
+	for (uint16_t i = 0; i < len; ++i)
+	{
+		mem_set(mem, dst + i, mem_get(mem, src + i));
+	}
+	mem_set_reg(mem, MEM_REG_HDM5, 0xff);
+}
+
 static uint8_t get(mem_t *mem, uint16_t addr)
 {
 	if (addr < 0x100)
 	{
-		if (mem_get_reg(mem, MEM_REG_BOOT))
-			return mbc_get(mem->mbc, addr);
-		return (&_binary_dmgbios_bin_start)[addr];
+		if (!mem_get_reg(mem, MEM_REG_BOOT))
+			return mem->bios[addr];
+	}
+
+	if (mem->cgb && addr >= 0x200 && addr <= 0x1000)
+	{
+		if (!mem_get_reg(mem, MEM_REG_BOOT))
+			return mem->bios[addr];
 	}
 
 	if (addr < 0x8000)
 		return mbc_get(mem->mbc, addr);
 
 	if (addr < 0xA000) /* vram */
-		return mem->vram[addr - 0x8000];
+		return mem->vram[addr - 0x8000 + 0x2000 * mem->vbk];
 
 	if (addr < 0xC000) /* external ram */
 		return mbc_get(mem->mbc, addr);
@@ -187,7 +270,7 @@ static uint8_t get(mem_t *mem, uint16_t addr)
 		return mem->workram0[addr - 0xC000];
 
 	if (addr < 0xE000) /* work ram bank n */
-		return mem->workram1[addr - 0xD000];
+		return mem->workram1[addr - 0xD000 + 0x1000 * mem->svbk];
 
 	if (addr < 0xF000) /* echo ram C000-D000 */
 		return mem->workram0[addr - 0xE000];
@@ -248,7 +331,7 @@ static void set(mem_t *mem, uint16_t addr, uint8_t v)
 
 	if (addr < 0xA000) /* vram */
 	{
-		mem->vram[addr - 0x8000] = v;
+		mem->vram[addr - 0x8000 + 0x2000 * mem->vbk] = v;
 		return;
 	}
 
@@ -266,7 +349,7 @@ static void set(mem_t *mem, uint16_t addr, uint8_t v)
 
 	if (addr < 0xE000) /* work ram bank n */
 	{
-		mem->workram1[addr - 0xD000] = v;
+		mem->workram1[addr - 0xD000 + 0x1000 * mem->svbk] = v;
 		return;
 	}
 
@@ -330,6 +413,21 @@ static void set(mem_t *mem, uint16_t addr, uint8_t v)
 			return;
 		case MEM_REG_NR52:
 			nr52_set(mem, v);
+			return;
+		case MEM_REG_BCPD:
+			bcpd_set(mem, v);
+			return;
+		case MEM_REG_OCPD:
+			ocpd_set(mem, v);
+			return;
+		case MEM_REG_SVBK:
+			svbk_set(mem, v);
+			return;
+		case MEM_REG_VBK:
+			vbk_set(mem, v);
+			return;
+		case MEM_REG_HDM5:
+			hdm5_set(mem, v);
 			return;
 	}
 	mem->highram[addr - 0xFF00] = v;
