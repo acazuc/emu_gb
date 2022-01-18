@@ -11,6 +11,8 @@ static void mbc2_update_rombank(mbc_t *mbc);
 static void mbc2_update_rambank(mbc_t *mbc);
 static void mbc3_update_rombank(mbc_t *mbc);
 static void mbc3_update_rambank(mbc_t *mbc);
+static void mbc5_update_rombank(mbc_t *mbc);
+static void mbc5_update_rambank(mbc_t *mbc);
 
 mbc_t *mbc_new(const void *data, size_t len)
 {
@@ -218,6 +220,10 @@ mbc_t *mbc_new(const void *data, size_t len)
 			mbc3_update_rombank(mbc);
 			mbc3_update_rambank(mbc);
 			break;
+		case MBC5:
+			mbc5_update_rombank(mbc);
+			mbc5_update_rambank(mbc);
+			break;
 		default:
 			break;
 	}
@@ -342,6 +348,36 @@ static void mbc3_update_rambank(mbc_t *mbc)
 	mbc->rambankptr = &mbc->rambanks[0x2000 * mbc->rambank];
 }
 
+static void mbc5_update_rombank(mbc_t *mbc)
+{
+	if (mbc->rombank > mbc->rombanksnb)
+	{
+		fprintf(stderr, "invalid mbc5 rombank: %x / %x\n", mbc->rombank, mbc->rombanksnb);
+		mbc->rombankptr = NULL;
+		return;
+	}
+
+	mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+}
+
+static void mbc5_update_rambank(mbc_t *mbc)
+{
+	if (!mbc->ramenabled)
+	{
+		mbc->rambankptr = NULL;
+		return;
+	}
+
+	if (mbc->rambank >= mbc->rambanksnb)
+	{
+		fprintf(stderr, "invalid mbc5 rambank: %x / %x\n", mbc->rambank, mbc->rambanksnb);
+		mbc->rambankptr = NULL;
+		return;
+	}
+
+	mbc->rambankptr = &mbc->rambanks[0x2000 * mbc->rambank];
+}
+
 uint8_t mbc_get(mbc_t *mbc, uint16_t addr)
 {
 	if (addr < 0x4000)
@@ -410,6 +446,19 @@ uint8_t mbc_get(mbc_t *mbc, uint16_t addr)
 			}
 			return 0;
 		case MBC5:
+			if (addr < 0x8000)
+			{
+				if (!mbc->rombankptr)
+					return 0;
+				return mbc->rombankptr[addr - 0x4000];
+			}
+			if (addr < 0xC000)
+			{
+				if (!mbc->rambankptr)
+					return 0;
+				return mbc->rambankptr[addr - 0xA000];
+			}
+			return 0;
 		case MBC6:
 		case MBC7:
 		case MBC_HUC1:
@@ -523,6 +572,30 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 			mbc->rambankptr[addr - 0xA000] = v;
 			return;
 		case MBC5:
+			if (addr < 0x2000)
+			{
+				mbc->ramenabled = ((v & 0x0F) == 0xA);
+				mbc5_update_rambank(mbc);
+				return;
+			}
+			if (addr < 0x3000)
+			{
+				mbc->rombank = (mbc->rombank & 0xFF00) | v;
+				mbc5_update_rombank(mbc);
+				return;
+			}
+			if (addr < 0x4000)
+			{
+				mbc->rombank = (mbc->rombank & 0x00FF) | (v << 8);
+				mbc5_update_rombank(mbc);
+				return;
+			}
+			if (addr < 0x6000)
+			{
+				mbc->rambank = v;
+				mbc5_update_rambank(mbc);
+				return;
+			}
 			return;
 		case MBC6:
 			return;

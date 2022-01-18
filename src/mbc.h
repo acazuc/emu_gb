@@ -42,8 +42,8 @@ typedef struct mbc_s
 	uint8_t *rambanks;
 	uint8_t ramenabled;
 	uint8_t rombanksnb;
-	uint8_t rambank;
-	uint8_t rombank;
+	uint16_t rambank;
+	uint16_t rombank;
 	uint8_t options;
 	uint8_t bankmode;
 } mbc_t;
