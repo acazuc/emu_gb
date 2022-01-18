@@ -9,10 +9,10 @@ INSTR_DEF(ld_##r1####r2##_nn) \
 		case 0: \
 			return false; \
 		case 1: \
-			cpu->regs.r2 = mem_get8(cpu->mem, cpu->regs.pc + 1); \
+			cpu->regs.r2 = mem_get(cpu->mem, cpu->regs.pc + 1); \
 			return false; \
 		case 2: \
-			cpu->regs.r1 = mem_get8(cpu->mem, cpu->regs.pc + 2); \
+			cpu->regs.r1 = mem_get(cpu->mem, cpu->regs.pc + 2); \
 			break; \
 	} \
 	cpu->regs.pc += 3; \
@@ -31,16 +31,16 @@ INSTR_DEF(ld_nn_sp)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u16[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u16[0] = mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			cpu->instr_tmp.u16[0] |= mem_get8(cpu->mem, cpu->regs.pc + 2) << 8;
+			cpu->instr_tmp.u16[0] |= mem_get(cpu->mem, cpu->regs.pc + 2) << 8;
 			return false;
 		case 3:
-			mem_set8(cpu->mem, cpu->instr_tmp.u16[0], cpu->regs.sp);
+			mem_set(cpu->mem, cpu->instr_tmp.u16[0], cpu->regs.sp);
 			return false;
 		case 4:
-			mem_set8(cpu->mem, cpu->instr_tmp.u16[0] + 1, cpu->regs.sp >> 8);
+			mem_set(cpu->mem, cpu->instr_tmp.u16[0] + 1, cpu->regs.sp >> 8);
 			break;
 	}
 	cpu->regs.pc += 3;
@@ -57,10 +57,10 @@ INSTR_DEF(push_##r1####r2) \
 		case 1: \
 			return false; \
 		case 2: \
-			mem_set8(cpu->mem, --cpu->regs.sp, cpu->regs.r1); \
+			mem_set(cpu->mem, --cpu->regs.sp, cpu->regs.r1); \
 			return false; \
 		case 3: \
-			mem_set8(cpu->mem, --cpu->regs.sp, cpu->regs.r2); \
+			mem_set(cpu->mem, --cpu->regs.sp, cpu->regs.r2); \
 			break; \
 	} \
 	cpu->regs.pc += 1; \
@@ -73,10 +73,10 @@ INSTR_DEF(pop_##r1####r2) \
 		case 0: \
 			return false; \
 		case 1: \
-			cpu->regs.r2 = mem_get8(cpu->mem, cpu->regs.sp++); \
+			cpu->regs.r2 = mem_get(cpu->mem, cpu->regs.sp++); \
 			return false; \
 		case 2: \
-			cpu->regs.r1 = mem_get8(cpu->mem, cpu->regs.sp++); \
+			cpu->regs.r1 = mem_get(cpu->mem, cpu->regs.sp++); \
 			cpu->regs.f &= 0xF0; \
 			break; \
 	} \

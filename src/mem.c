@@ -220,7 +220,7 @@ static void nr52_set(mem_ref_t *ref, uint8_t v)
 		mem_set_reg(mem, MEM_REG_NR52, 0);
 }
 
-static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
+static mem_ref_t mem_ref(mem_t *mem, uint16_t addr, bool dmabypass)
 {
 	if (mem->dmatransfer && !dmabypass)
 	{
@@ -310,58 +310,22 @@ static mem_ref_t mem_u8(mem_t *mem, uint16_t addr, bool dmabypass)
 void mem_dmatransfer(mem_t *mem)
 {
 	uint8_t i = 0x9F - mem->dmatransfer;
-	mem_ref_t ref = mem_u8(mem, mem->highram[MEM_REG_DMA - 0xFF00] * 0x100 + i, true);
+	mem_ref_t ref = mem_ref(mem, mem->highram[MEM_REG_DMA - 0xFF00] * 0x100 + i, true);
 	uint8_t v = ref.get ? ref.get(&ref) : 0;
 	mem->oam[i] = v;
 }
 
-uint8_t mem_get_reg(mem_t *mem, uint16_t addr)
+uint8_t mem_get(mem_t *mem, uint16_t addr)
 {
-	return mem->highram[addr - 0xFF00];
-}
-
-void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
-{
-	mem->highram[addr - 0xFF00] = v;
-}
-
-uint8_t mem_get_vram(mem_t *mem, uint16_t addr)
-{
-	if (mem->dmatransfer)
-		return 0;
-	return mem->vram[addr - 0x8000];
-}
-
-uint8_t mem_get_oam(mem_t *mem, uint16_t addr)
-{
-	if (mem->dmatransfer)
-		return 0;
-	return mem->oam[addr - 0xFE00];
-}
-
-uint8_t mem_get8(mem_t *mem, uint16_t addr)
-{
-	mem_ref_t ref = mem_u8(mem, addr, false);
+	mem_ref_t ref = mem_ref(mem, addr, false);
 	if (ref.get)
 		return ref.get(&ref);
 	return 0;
 }
 
-void mem_set8(mem_t *mem, uint16_t addr, uint8_t v)
+void mem_set(mem_t *mem, uint16_t addr, uint8_t v)
 {
-	mem_ref_t ref = mem_u8(mem, addr, false);
+	mem_ref_t ref = mem_ref(mem, addr, false);
 	if (ref.set)
 		ref.set(&ref, v);
-}
-
-uint16_t mem_get16(mem_t *mem, uint16_t addr)
-{
-	return mem_get8(mem, addr + 0) << 0
-	     | mem_get8(mem, addr + 1) << 8;
-}
-
-void mem_set16(mem_t *mem, uint16_t addr, uint16_t v)
-{
-	mem_set8(mem, addr + 0, v >> 0);
-	mem_set8(mem, addr + 1, v >> 8);
 }

@@ -29,9 +29,9 @@ void cpu_del(cpu_t *cpu)
 
 static void next_instruction(cpu_t *cpu)
 {
-	uint8_t opcode = mem_get8(cpu->mem, cpu->regs.pc);
+	uint8_t opcode = mem_get(cpu->mem, cpu->regs.pc);
 	if (opcode == 0xCB)
-		cpu->instr = &g_cpu_cb_instructions[mem_get8(cpu->mem, cpu->regs.pc + 1)];
+		cpu->instr = &g_cpu_cb_instructions[mem_get(cpu->mem, cpu->regs.pc + 1)];
 	else
 		cpu->instr = &g_cpu_instructions[opcode];
 
@@ -66,32 +66,32 @@ static size_t decode_instr_param(cpu_t *cpu, char *cur, size_t len, const char *
 {
 	if (l == 2 && !strncmp(s, "nn", l))
 	{
-		snprintf(cur, len, "%%%04x", mem_get16(cpu->mem, cpu->regs.pc + *n));
+		snprintf(cur, len, "%%%02x%02x", mem_get(cpu->mem, cpu->regs.pc + *n), mem_get(cpu->mem, cpu->regs.pc + *n + 1));
 		*n += 2;
 		return 5;
 	}
 	else if (l == 1 && !strncmp(s, "n", l))
 	{
-		snprintf(cur, len, "%%%02x", mem_get8(cpu->mem, cpu->regs.pc + *n));
+		snprintf(cur, len, "%%%02x", mem_get(cpu->mem, cpu->regs.pc + *n));
 		*n += 1;
 		return 3;
 	}
 	else if (l == 1 && !strncmp(s, "d", l))
 	{
-		int8_t v = (int8_t)mem_get8(cpu->mem, cpu->regs.pc + *n);
+		int8_t v = (int8_t)mem_get(cpu->mem, cpu->regs.pc + *n);
 		snprintf(cur, len, "%c%%%02x", v < 0 ? '-' : '+', v < 0 ? -v : v);
 		*n += 1;
 		return 4;
 	}
 	else if (l == 4 && !strncmp(s, "(nn)", l))
 	{
-		snprintf(cur, len, "(%%%04x)", mem_get16(cpu->mem, cpu->regs.pc + *n));
+		snprintf(cur, len, "(%%%02x%02x)", mem_get(cpu->mem, cpu->regs.pc + *n), mem_get(cpu->mem, cpu->regs.pc + *n + 1));
 		*n += 2;
 		return 7;
 	}
 	else if (l == 6 && !strncmp(s, "(ff+n)", l))
 	{
-		snprintf(cur, len, "(%%ff00+%%%02x)", mem_get8(cpu->mem, cpu->regs.pc + *n));
+		snprintf(cur, len, "(%%ff00+%%%02x)", mem_get(cpu->mem, cpu->regs.pc + *n));
 		*n += 1;
 		return 11;
 	}

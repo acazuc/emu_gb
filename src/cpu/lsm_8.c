@@ -9,7 +9,7 @@ INSTR_DEF(ld_##rr##_a) \
 		case 0: \
 			return false; \
 		case 1: \
-			mem_set8(cpu->mem, cpu->regs.rr, cpu->regs.a); \
+			mem_set(cpu->mem, cpu->regs.rr, cpu->regs.a); \
 			break; \
 	} \
 	cpu->regs.pc += 1; \
@@ -28,7 +28,7 @@ INSTR_DEF(ld_a_##rr) \
 		case 0: \
 			return false; \
 		case 1: \
-			cpu->regs.a = mem_get8(cpu->mem, cpu->regs.rr); \
+			cpu->regs.a = mem_get(cpu->mem, cpu->regs.rr); \
 			break; \
 	} \
 	cpu->regs.pc += 1; \
@@ -47,7 +47,7 @@ INSTR_DEF(ld_##r##_n) \
 		case 0: \
 			return false; \
 		case 1: \
-			cpu->regs.r = mem_get8(cpu->mem, cpu->regs.pc + 1); \
+			cpu->regs.r = mem_get(cpu->mem, cpu->regs.pc + 1); \
 			break; \
 	} \
 	cpu->regs.pc += 2; \
@@ -90,7 +90,7 @@ INSTR_DEF(ld_##r##_hl) \
 		case 0: \
 			return false; \
 		case 1: \
-			cpu->regs.r = mem_get8(cpu->mem, cpu->regs.hl); \
+			cpu->regs.r = mem_get(cpu->mem, cpu->regs.hl); \
 			break; \
 	} \
 	cpu->regs.pc += 1; \
@@ -103,7 +103,7 @@ INSTR_DEF(ld_hl_##r) \
 		case 0: \
 			return false; \
 		case 1: \
-			mem_set8(cpu->mem, cpu->regs.hl, cpu->regs.r); \
+			mem_set(cpu->mem, cpu->regs.hl, cpu->regs.r); \
 			break; \
 	} \
 	cpu->regs.pc += 1; \
@@ -125,7 +125,7 @@ INSTR_DEF(ldi_hl_a)
 		case 0:
 			return false;
 		case 1:
-			mem_set8(cpu->mem, cpu->regs.hl++, cpu->regs.a);
+			mem_set(cpu->mem, cpu->regs.hl++, cpu->regs.a);
 			break;
 	}
 	cpu->regs.pc += 1;
@@ -139,7 +139,7 @@ INSTR_DEF(ldi_a_hl)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a = mem_get8(cpu->mem, cpu->regs.hl++);
+			cpu->regs.a = mem_get(cpu->mem, cpu->regs.hl++);
 			break;
 	}
 	cpu->regs.pc += 1;
@@ -153,7 +153,7 @@ INSTR_DEF(ldd_hl_a)
 		case 0:
 			return false;
 		case 1:
-			mem_set8(cpu->mem, cpu->regs.hl--, cpu->regs.a);
+			mem_set(cpu->mem, cpu->regs.hl--, cpu->regs.a);
 			break;
 	}
 	cpu->regs.pc += 1;
@@ -167,7 +167,7 @@ INSTR_DEF(ldd_a_hl)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a = mem_get8(cpu->mem, cpu->regs.hl--);
+			cpu->regs.a = mem_get(cpu->mem, cpu->regs.hl--);
 			break;
 	}
 	cpu->regs.pc += 1;
@@ -181,10 +181,10 @@ INSTR_DEF(ld_rhl_n)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u8[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u8[0] = mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			mem_set8(cpu->mem, cpu->regs.hl, cpu->instr_tmp.u8[0]);
+			mem_set(cpu->mem, cpu->regs.hl, cpu->instr_tmp.u8[0]);
 			break;
 	}
 	cpu->regs.pc += 2;
@@ -198,10 +198,10 @@ INSTR_DEF(ld_ffn_a)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u8[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u8[0] = mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			mem_set8(cpu->mem, 0xFF00 + cpu->instr_tmp.u8[0], cpu->regs.a);
+			mem_set(cpu->mem, 0xFF00 + cpu->instr_tmp.u8[0], cpu->regs.a);
 			break;
 	}
 	cpu->regs.pc += 2;
@@ -215,7 +215,7 @@ INSTR_DEF(ld_ffc_a)
 		case 0:
 			return false;
 		case 1:
-			mem_set8(cpu->mem, 0xFF00 + cpu->regs.c, cpu->regs.a);
+			mem_set(cpu->mem, 0xFF00 + cpu->regs.c, cpu->regs.a);
 			break;
 	}
 	cpu->regs.pc += 1;
@@ -229,10 +229,10 @@ INSTR_DEF(ld_a_ffn)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u8[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u8[0] = mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			cpu->regs.a = mem_get8(cpu->mem, 0xFF00 + cpu->instr_tmp.u8[0]);
+			cpu->regs.a = mem_get(cpu->mem, 0xFF00 + cpu->instr_tmp.u8[0]);
 			break;
 	}
 	cpu->regs.pc += 2;
@@ -246,7 +246,7 @@ INSTR_DEF(ld_a_ffc)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a = mem_get8(cpu->mem, 0xFF00 + cpu->regs.c);
+			cpu->regs.a = mem_get(cpu->mem, 0xFF00 + cpu->regs.c);
 			break;
 	}
 	cpu->regs.pc += 1;
@@ -260,13 +260,13 @@ INSTR_DEF(ld_a_nn)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u16[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u16[0] = mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			cpu->instr_tmp.u16[0] |= mem_get8(cpu->mem, cpu->regs.pc + 2) << 8;
+			cpu->instr_tmp.u16[0] |= mem_get(cpu->mem, cpu->regs.pc + 2) << 8;
 			return false;
 		case 3:
-			cpu->regs.a = mem_get8(cpu->mem, cpu->instr_tmp.u16[0]);
+			cpu->regs.a = mem_get(cpu->mem, cpu->instr_tmp.u16[0]);
 			break;
 	}
 	cpu->regs.pc += 3;
@@ -280,13 +280,13 @@ INSTR_DEF(ld_nn_a)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u16[0] = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u16[0] = mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
-			cpu->instr_tmp.u16[0] |= mem_get8(cpu->mem, cpu->regs.pc + 2) << 8;
+			cpu->instr_tmp.u16[0] |= mem_get(cpu->mem, cpu->regs.pc + 2) << 8;
 			return false;
 		case 3:
-			mem_set8(cpu->mem, cpu->instr_tmp.u16[0], cpu->regs.a);
+			mem_set(cpu->mem, cpu->instr_tmp.u16[0], cpu->regs.a);
 			break;
 	}
 	cpu->regs.pc += 3;

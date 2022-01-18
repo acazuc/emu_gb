@@ -90,7 +90,7 @@ INSTR_DEF(add_a_hl)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t add = mem_get8(cpu->mem, cpu->regs.hl);
+			uint8_t add = mem_get(cpu->mem, cpu->regs.hl);
 			cpu->regs.a += add;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
@@ -112,7 +112,7 @@ INSTR_DEF(add_a_n)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t add = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			uint8_t add = mem_get(cpu->mem, cpu->regs.pc + 1);
 			cpu->regs.a += add;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
@@ -164,7 +164,7 @@ INSTR_DEF(adc_a_hl)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t add = mem_get8(cpu->mem, cpu->regs.hl);
+			uint8_t add = mem_get(cpu->mem, cpu->regs.hl);
 			uint8_t c = CPU_GET_FLAG_C(cpu);
 			cpu->regs.a += add + c;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
@@ -187,7 +187,7 @@ INSTR_DEF(adc_a_n)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t add = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			uint8_t add = mem_get(cpu->mem, cpu->regs.pc + 1);
 			uint8_t c = CPU_GET_FLAG_C(cpu);
 			cpu->regs.a += add + c;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
@@ -239,7 +239,7 @@ INSTR_DEF(sub_a_hl)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t sub = mem_get8(cpu->mem, cpu->regs.hl);
+			uint8_t sub = mem_get(cpu->mem, cpu->regs.hl);
 			cpu->regs.a -= sub;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 1);
@@ -261,7 +261,7 @@ INSTR_DEF(sub_a_n)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t sub = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			uint8_t sub = mem_get(cpu->mem, cpu->regs.pc + 1);
 			cpu->regs.a -= sub;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 1);
@@ -313,7 +313,7 @@ INSTR_DEF(sbc_a_hl)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t sub = mem_get8(cpu->mem, cpu->regs.hl);
+			uint8_t sub = mem_get(cpu->mem, cpu->regs.hl);
 			uint8_t c = CPU_GET_FLAG_C(cpu);
 			cpu->regs.a -= sub + c;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
@@ -336,7 +336,7 @@ INSTR_DEF(sbc_a_n)
 		case 1:
 		{
 			uint8_t v = cpu->regs.a;
-			uint8_t sub = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			uint8_t sub = mem_get(cpu->mem, cpu->regs.pc + 1);
 			uint8_t c = CPU_GET_FLAG_C(cpu);
 			cpu->regs.a -= sub + c;
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
@@ -382,7 +382,7 @@ INSTR_DEF(and_a_hl)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a &= mem_get8(cpu->mem, cpu->regs.hl);
+			cpu->regs.a &= mem_get(cpu->mem, cpu->regs.hl);
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 1);
@@ -400,7 +400,7 @@ INSTR_DEF(and_a_n)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a &= mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->regs.a &= mem_get(cpu->mem, cpu->regs.pc + 1);
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 1);
@@ -443,7 +443,7 @@ INSTR_DEF(xor_a_hl)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a ^= mem_get8(cpu->mem, cpu->regs.hl);
+			cpu->regs.a ^= mem_get(cpu->mem, cpu->regs.hl);
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 0);
@@ -461,7 +461,7 @@ INSTR_DEF(xor_a_n)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a ^= mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->regs.a ^= mem_get(cpu->mem, cpu->regs.pc + 1);
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 0);
@@ -504,7 +504,7 @@ INSTR_DEF(or_a_hl)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a |= mem_get8(cpu->mem, cpu->regs.hl);
+			cpu->regs.a |= mem_get(cpu->mem, cpu->regs.hl);
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 0);
@@ -522,7 +522,7 @@ INSTR_DEF(or_a_n)
 		case 0:
 			return false;
 		case 1:
-			cpu->regs.a |= mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->regs.a |= mem_get(cpu->mem, cpu->regs.pc + 1);
 			CPU_SET_FLAG_Z(cpu, !cpu->regs.a);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, 0);
@@ -568,7 +568,7 @@ INSTR_DEF(cp_a_hl)
 			return false;
 		case 1:
 		{
-			uint8_t v = mem_get8(cpu->mem, cpu->regs.hl);
+			uint8_t v = mem_get(cpu->mem, cpu->regs.hl);
 			CPU_SET_FLAG_Z(cpu, cpu->regs.a == v);
 			CPU_SET_FLAG_N(cpu, 1);
 			CPU_SET_FLAG_H(cpu, (cpu->regs.a & 0xf) < (v & 0xf));
@@ -588,7 +588,7 @@ INSTR_DEF(cp_a_n)
 			return false;
 		case 1:
 		{
-			uint8_t v = mem_get8(cpu->mem, cpu->regs.pc + 1);
+			uint8_t v = mem_get(cpu->mem, cpu->regs.pc + 1);
 			CPU_SET_FLAG_Z(cpu, cpu->regs.a == v);
 			CPU_SET_FLAG_N(cpu, 1);
 			CPU_SET_FLAG_H(cpu, (cpu->regs.a & 0xf) < (v & 0xf));
@@ -607,12 +607,12 @@ INSTR_DEF(inc_rhl)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u8[0] = mem_get8(cpu->mem, cpu->regs.hl);
+			cpu->instr_tmp.u8[0] = mem_get(cpu->mem, cpu->regs.hl);
 			return false;
 		case 2:
 		{
 			uint8_t v = cpu->instr_tmp.u8[0] + 1;
-			mem_set8(cpu->mem, cpu->regs.hl, v);
+			mem_set(cpu->mem, cpu->regs.hl, v);
 			CPU_SET_FLAG_Z(cpu, !v);
 			CPU_SET_FLAG_N(cpu, 0);
 			CPU_SET_FLAG_H(cpu, !(v & 0xf));
@@ -630,12 +630,12 @@ INSTR_DEF(dec_rhl)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.u8[0] = mem_get8(cpu->mem, cpu->regs.hl);
+			cpu->instr_tmp.u8[0] = mem_get(cpu->mem, cpu->regs.hl);
 			return false;
 		case 2:
 		{
 			uint8_t v = cpu->instr_tmp.u8[0] - 1;
-			mem_set8(cpu->mem, cpu->regs.hl, v);
+			mem_set(cpu->mem, cpu->regs.hl, v);
 			CPU_SET_FLAG_Z(cpu, !v);
 			CPU_SET_FLAG_N(cpu, 1);
 			CPU_SET_FLAG_H(cpu, (v & 0xf) == 0xf);

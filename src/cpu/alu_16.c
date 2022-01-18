@@ -70,7 +70,7 @@ INSTR_DEF(add_sp_n)
 			return false;
 		case 1:
 			cpu->instr_tmp.u16[1] = cpu->regs.sp;
-			cpu->instr_tmp.u16[0] = cpu->regs.sp + (int8_t)mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.u16[0] = cpu->regs.sp + (int8_t)mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
 			cpu->regs.sp = (cpu->regs.sp & 0xFF00) | (cpu->instr_tmp.u16[0] & 0x00FF);
@@ -97,7 +97,7 @@ INSTR_DEF(ld_hl_spn)
 		case 0:
 			return false;
 		case 1:
-			cpu->instr_tmp.i8[0] = (int8_t)mem_get8(cpu->mem, cpu->regs.pc + 1);
+			cpu->instr_tmp.i8[0] = (int8_t)mem_get(cpu->mem, cpu->regs.pc + 1);
 			return false;
 		case 2:
 		{

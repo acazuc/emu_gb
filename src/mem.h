@@ -92,16 +92,31 @@ void mem_set_joyp(mem_t *mem, uint8_t joyp);
 
 void mem_dmatransfer(mem_t *mem);
 
-uint8_t mem_get_reg(mem_t *mem, uint16_t addr);
-void    mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v);
+static inline uint8_t mem_get_reg(mem_t *mem, uint16_t addr)
+{
+	return mem->highram[addr - 0xFF00];
+}
 
-uint8_t mem_get_vram(mem_t *mem, uint16_t addr);
-uint8_t mem_get_oam(mem_t *mem, uint16_t addr);
+static inline void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
+{
+	mem->highram[addr - 0xFF00] = v;
+}
 
-uint8_t mem_get8(mem_t *mem, uint16_t addr);
-void    mem_set8(mem_t *mem, uint16_t addr, uint8_t v);
+static inline uint8_t mem_get_vram(mem_t *mem, uint16_t addr)
+{
+	if (mem->dmatransfer)
+		return 0;
+	return mem->vram[addr - 0x8000];
+}
 
-uint16_t mem_get16(mem_t *mem, uint16_t addr);
-void     mem_set16(mem_t *mem, uint16_t addr, uint16_t v);
+static inline uint8_t mem_get_oam(mem_t *mem, uint16_t addr)
+{
+	if (mem->dmatransfer)
+		return 0;
+	return mem->oam[addr - 0xFE00];
+}
+
+uint8_t mem_get(mem_t *mem, uint16_t addr);
+void    mem_set(mem_t *mem, uint16_t addr, uint8_t v);
 
 #endif
