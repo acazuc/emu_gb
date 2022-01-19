@@ -106,38 +106,30 @@ static void gb_clock(gb_t *gb, size_t cycles)
 {
 	for (size_t i = 0; i < cycles; ++i)
 	{
+		if (gb->mem->doublespeed)
+			timer_clock(gb);
 		timer_clock(gb);
+
+		if (gb->mem->doublespeed)
+			cpu_clock(gb->cpu);
 		cpu_clock(gb->cpu);
+
 		apu_clock(gb->apu);
 	}
 }
 
 void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad)
 {
-	for (size_t y = 0; y < GPU_HEIGHT; ++y)
-	{
-		for (size_t x = 0; x < GPU_WIDTH; ++x)
-		{
-			size_t idx = (y * GPU_WIDTH + x)* 4;
-			for (size_t i = 0; i < 4; ++i)
-			{
-				if (((joypad & GB_BUTTON_LEFT)  && x < GPU_WIDTH / 4)
-				 || ((joypad & GB_BUTTON_RIGHT) && x > GPU_WIDTH * 3 / 4)
-				 || ((joypad & GB_BUTTON_UP)    && y < GPU_HEIGHT / 4)
-				 || ((joypad & GB_BUTTON_DOWN)  && y > GPU_HEIGHT * 3 / 4))
-					video_buf[idx + i] = rand();
-				else
-					video_buf[idx + i] = 0;
-			}
-		}
-	}
+	gb->frame++;
+
+	if ( joypad & GB_BUTTON_LEFT )
+		fprintf(stderr, "left\n");
 
 	if (gb->mem->joyp != joypad)
 	{
 		gb->mem->joyp = joypad;
 		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 4));
 	}
-
 
 	for (size_t y = 0; y < 144; ++y)
 	{
@@ -174,6 +166,7 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad)
 		if (mem_get_reg(gb->mem, MEM_REG_LCDC) & (1 << 7))
 		{
 			/* mode 0: hblank */
+			mem_hdmatransfer(gb->mem);
 			mem_set_reg(gb->mem, MEM_REG_STAT, (mem_get_reg(gb->mem, MEM_REG_STAT) & (~0x3)) | 0);
 			if (mem_get_reg(gb->mem, MEM_REG_STAT) & (1 << 3))
 				mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 1));

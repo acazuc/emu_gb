@@ -279,13 +279,17 @@ static void update_channel4(apu_t *apu)
 
 void apu_clock(apu_t *apu)
 {
-	if ((apu->mem->timer & 0x3FFF) == 0)
+	uint16_t timer = apu->mem->timer;
+	if (apu->mem->doublespeed)
+		timer /= 2;
+
+	if ((timer & 0x3FFF) == 0)
 		length_tick(apu);
 
-	if ((apu->mem->timer & 0x7FFF) == 0)
+	if ((timer & 0x7FFF) == 0)
 		swp_tick(apu);
 
-	if ((apu->mem->timer & 0xFFFF) == 0)
+	if ((timer & 0xFFFF) == 0)
 		env_tick(apu);
 
 	update_channel1(apu);

@@ -84,10 +84,11 @@ static void render_background(gpu_t *gpu, uint8_t y)
 	{
 		uint8_t rx = scx + x;
 		uint8_t bx = rx % 8;
-		uint8_t charcode = mem_get_vram0(gpu->mem, baseaddr + rx / 8 + ry / 8 * 32);
+		uint16_t caddr = baseaddr + rx / 8 + ry / 8 * 32;
+		uint8_t charcode = mem_get_vram0(gpu->mem, caddr);
 		uint16_t addr = charaddr + (haddr ? charcode * 16 : (int8_t)charcode * 16);
-		if (gpu->mem->cgb)
-			render_tile_cgb(gpu, addr, x, y, bx, by, mem_get_vram1(gpu->mem, baseaddr + rx / 8 + ry / 8 * 32));
+		if (gpu->mem->cgb != CGB_NO)
+			render_tile_cgb(gpu, addr, x, y, bx, by, mem_get_vram1(gpu->mem, caddr));
 		else
 			render_tile_dmg(gpu, addr, x, y, bx, by);
 	}
@@ -110,10 +111,11 @@ static void render_window(gpu_t *gpu, uint8_t y)
 		uint8_t ry = y - wy;
 		uint8_t bx = rx % 8;
 		uint8_t by = ry % 8;
-		uint16_t charcode = mem_get_vram0(gpu->mem, baseaddr + ((rx - bx) + (ry - by) * 32) / 8);
+		uint16_t caddr = baseaddr + ((rx - bx) + (ry - by) * 32) / 8;
+		uint16_t charcode = mem_get_vram0(gpu->mem, caddr);
 		uint16_t addr = charaddr + (haddr ? charcode * 16 : (int8_t)charcode * 16);
-		if (gpu->mem->cgb)
-			render_tile_cgb(gpu, addr, x, y, bx, by, mem_get_vram1(gpu->mem, baseaddr + ((rx - bx) + (ry - by) * 32) / 8));
+		if (gpu->mem->cgb != CGB_NO)
+			render_tile_cgb(gpu, addr, x, y, bx, by, mem_get_vram1(gpu->mem, caddr));
 		else
 			render_tile_dmg(gpu, addr, x, y, bx, by);
 	}
@@ -124,15 +126,12 @@ static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 	uint8_t orgbx = bx;
 	bool palette = (attr >> 4) & 1;
 	bool prio = (attr >> 7) & 1;
-	uint8_t bot = by >= 8;
 	if (attr & (1 << 5))
 		bx = 7 - bx;
 	if (attr & (1 << 6))
 		by = (height16 ? 15 : 7) - by;
 	if (height16)
 		charcode &= ~1;
-	if (bot)
-		charcode++;
 	uint16_t charaddr = 0x8000 + charcode * 16;
 	uint8_t pixel = (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
 	              | (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
@@ -154,15 +153,12 @@ static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 	uint8_t orgbx = bx;
 	bool palette = gpu->mem->cgb == CGB_YES ? (attr & 0x3) : ((attr >> 4) & 1);
 	bool prio = (attr >> 7) & 1;
-	uint8_t bot = by >= 8;
 	if (attr & (1 << 5))
 		bx = 7 - bx;
 	if (attr & (1 << 6))
 		by = (height16 ? 15 : 7) - by;
 	if (height16)
 		charcode &= ~1;
-	if (bot)
-		charcode++;
 	uint16_t charaddr = 0x8000 + charcode * 16;
 	uint8_t coloridx;
 	if (attr & (1 << 3))
@@ -217,7 +213,7 @@ static void render_objects(gpu_t *gpu, uint8_t y)
 			if (tx < 8 || tx >= 168)
 				continue;
 			tx -= 8;
-			if (gpu->mem->cgb)
+			if (gpu->mem->cgb != CGB_NO)
 				render_object_cgb(gpu, tx, y, x, y - cy + 16, charcode, cattr, height16);
 			else
 				render_object_dmg(gpu, tx, y, x, y - cy + 16, charcode, cattr, height16);

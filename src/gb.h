@@ -31,6 +31,7 @@ typedef struct gb_s
 	apu_t *apu;
 	uint8_t lasttimer;
 	uint8_t timerint;
+	uint32_t frame;
 } gb_t;
 
 gb_t *gb_new(const void *rom_data, size_t rom_size);

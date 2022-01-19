@@ -1,6 +1,7 @@
 #include "mem.h"
 #include "mbc.h"
 #include "apu.h"
+#include "cpu.h"
 #include "gb.h"
 
 #include <inttypes.h>
@@ -34,8 +35,8 @@ mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 		return NULL;
 	}
 
-	mem->cgb = CGB_FORCE; //(mbc->data[0x143] & 0x80) != 0;
-	if (mem->cgb)
+	mem->cgb = (mbc->data[0x143] & 0x80) != 0 ? CGB_YES : CGB_FORCE;
+	if (mem->cgb != CGB_NO)
 	{
 		size_t i = 0;
 		for (uint8_t *s = &_binary_cgbbios_bin_start; s < &_binary_cgbbios_bin_end; ++s)
@@ -193,7 +194,7 @@ static void bcpd_set(mem_t *mem, uint8_t v)
 	uint8_t bcps = mem_get_reg(mem, MEM_REG_BCPS);
 	mem->bgpalette[bcps & 0x3F] = v;
 	if (bcps & (1 << 7))
-		mem_set_reg(mem, MEM_REG_BCPS, (bcps & 0xB0) | (((bcps & 0x3F) + 1) & 0x3F));
+		mem_set_reg(mem, MEM_REG_BCPS, 0x80 | (((bcps & 0x3F) + 1) & 0x3F));
 }
 
 static void ocpd_set(mem_t *mem, uint8_t v)
@@ -206,7 +207,7 @@ static void ocpd_set(mem_t *mem, uint8_t v)
 
 static void svbk_set(mem_t *mem, uint8_t v)
 {
-	if (!mem->cgb)
+	if (mem->cgb == CGB_NO)
 		return;
 	v &= 0x7;
 	if (v)
@@ -216,31 +217,86 @@ static void svbk_set(mem_t *mem, uint8_t v)
 
 static void vbk_set(mem_t *mem, uint8_t v)
 {
-	if (!mem->cgb)
+	if (mem->cgb == CGB_NO)
 		return;
 	mem->vbk = v & 1;
+	fprintf(stderr, "[%04x] [%04x] write VBK %02x\n", mem->gb->frame, mem->gb->cpu->regs.pc, v);
+}
+
+static void hdm1_set(mem_t *mem, uint8_t v)
+{
+	mem->hdma_src = ((v << 8) | (mem->hdma_src & 0xFF)) & 0xFFF0;
+	fprintf(stderr, "[%04x] [%04x] write HDM1 %02x\n", mem->gb->frame, mem->gb->cpu->regs.pc, v);
+}
+
+static void hdm2_set(mem_t *mem, uint8_t v)
+{
+	mem->hdma_src = ((mem->hdma_src & 0xFF00) | v) & 0xFFF0;
+	fprintf(stderr, "[%04x] [%04x] write HDM2 %02x\n", mem->gb->frame, mem->gb->cpu->regs.pc, v);
+}
+
+static void hdm3_set(mem_t *mem, uint8_t v)
+{
+	mem->hdma_dst = (((v << 8) | (mem->hdma_dst & 0xFF)) & 0x1FF0) | 0x8000;
+	fprintf(stderr, "[%04x] [%04x] write HDM3 %02x\n", mem->gb->frame, mem->gb->cpu->regs.pc, v);
+}
+
+static void hdm4_set(mem_t *mem, uint8_t v)
+{
+	mem->hdma_dst = (((mem->hdma_dst & 0xFF00) | v) & 0x1FF0) | 0x8000;
+	fprintf(stderr, "[%04x] [%04x] write HDM4 %02x\n", mem->gb->frame, mem->gb->cpu->regs.pc, v);
+}
+
+static uint8_t hdm5_get(mem_t *mem)
+{
+	if (mem->cgb == CGB_NO)
+		return 0xff;
+	uint8_t v = mem_get_reg(mem, MEM_REG_HDM5);
+	//fprintf(stderr, "[%02x] read hdm5 %02x\n", mem->gb->frame, v);
+	return v;
 }
 
 static void hdm5_set(mem_t *mem, uint8_t v)
 {
-	if (!mem->cgb)
+	if (mem->cgb == CGB_NO)
 		return;
-	uint16_t src = ((mem_get_reg(mem, MEM_REG_HDM1) << 8) | mem_get_reg(mem, MEM_REG_HDM2)) & 0xFFF0;
-	uint16_t dst = ((mem_get_reg(mem, MEM_REG_HDM3) << 8) | mem_get_reg(mem, MEM_REG_HDM4)) & 0x1FF0;
-	dst += 0x8000;
 	uint16_t len = ((v & 0x7F) + 1) << 4;
-	fprintf(stderr, "hdma write %04x from %04x to %04x\n", len, src, dst);
+	fprintf(stderr, "[%04x] [%04x] start %s of %04x bytes (%02x) from %04x to %04x\n", mem->gb->frame, mem->gb->cpu->regs.pc, (v & (1 << 7)) ? "hdma" : "gdma", len, v, mem->hdma_src, mem->hdma_dst);
 	if (v & (1 << 7))
 	{
-		//XXX
-		fprintf(stderr, "not supported\n");
-		//return;
+		mem->hdma_len = len;
+		mem_set_reg(mem, MEM_REG_HDM5, v & 0x7f);
+		return;
 	}
-	for (uint16_t i = 0; i < len; ++i)
+	if (mem->hdma_len)
 	{
-		mem_set(mem, dst + i, mem_get(mem, src + i));
+		fprintf(stderr, "[%04x] hdma vblank stopped\n", mem->gb->frame);
+		mem->hdma_len = 0;
+		mem_set_reg(mem, MEM_REG_HDM5, mem_get_reg(mem, MEM_REG_HDM5) | 0x80);
+		return;
 	}
+	mem->hdma_len = 0;
+	for (uint16_t i = 0; i < len; ++i)
+		mem_set(mem, mem->hdma_dst++, mem_get(mem, mem->hdma_src++));
 	mem_set_reg(mem, MEM_REG_HDM5, 0xff);
+}
+
+static uint8_t key1_get(mem_t *mem)
+{
+	if (mem->cgb == CGB_NO)
+		return 0;
+	uint8_t v = mem_get_reg(mem, MEM_REG_KEY1);
+	if (mem->doublespeed)
+		v |= 0x80;
+	return v;
+}
+
+static void key1_set(mem_t *mem, uint8_t v)
+{
+	if (mem->cgb == CGB_NO)
+		return;
+	v &= 1;
+	mem_set_reg(mem, MEM_REG_KEY1, (mem_get_reg(mem, MEM_REG_KEY1) & 0xFE) | v);
 }
 
 static uint8_t get(mem_t *mem, uint16_t addr)
@@ -310,6 +366,10 @@ static uint8_t get(mem_t *mem, uint16_t addr)
 			return nr34_get(mem);
 		case MEM_REG_NR44:
 			return nr44_get(mem);
+		case MEM_REG_HDM5:
+			return hdm5_get(mem);
+		case MEM_REG_KEY1:
+			return key1_get(mem);
 	}
 	return mem->highram[addr - 0xFF00];
 }
@@ -426,8 +486,23 @@ static void set(mem_t *mem, uint16_t addr, uint8_t v)
 		case MEM_REG_VBK:
 			vbk_set(mem, v);
 			return;
+		case MEM_REG_HDM1:
+			hdm1_set(mem, v);
+			return;
+		case MEM_REG_HDM2:
+			hdm2_set(mem, v);
+			return;
+		case MEM_REG_HDM3:
+			hdm3_set(mem, v);
+			return;
+		case MEM_REG_HDM4:
+			hdm4_set(mem, v);
+			return;
 		case MEM_REG_HDM5:
 			hdm5_set(mem, v);
+			return;
+		case MEM_REG_KEY1:
+			key1_set(mem, v);
 			return;
 	}
 	mem->highram[addr - 0xFF00] = v;
@@ -437,6 +512,26 @@ void mem_dmatransfer(mem_t *mem)
 {
 	uint8_t i = 0x9F - mem->dmatransfer;
 	mem->oam[i] = get(mem, mem->highram[MEM_REG_DMA - 0xFF00] * 0x100 + i);
+}
+
+void mem_hdmatransfer(mem_t *mem)
+{
+	if (!mem->hdma_len)
+		return;
+	fprintf(stderr, "[%04x] hdma batch of %04x bytes from %04x to %04x\n", mem->gb->frame, mem->hdma_len, mem->hdma_src, mem->hdma_dst);
+	for (size_t i = 0; i < 0x10; ++i)
+		mem_set(mem, mem->hdma_dst++, mem_get(mem, mem->hdma_src++));
+	mem->hdma_len -= 0x10;
+
+	uint8_t hdm5 = mem_get_reg(mem, MEM_REG_HDM5);
+	if (!mem->hdma_len)
+	{
+		fprintf(stderr, "[%04x] hdma end\n", mem->gb->frame);
+		mem_set_reg(mem, MEM_REG_HDM5, 0xFF);
+		return;
+	}
+
+	mem_set_reg(mem, MEM_REG_HDM5, (hdm5 & 0x7F) - 1);
 }
 
 uint8_t mem_get(mem_t *mem, uint16_t addr)

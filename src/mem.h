@@ -5,6 +5,8 @@
 #include <stdint.h>
 
 #define MEM_REG_JOYP 0xFF00
+#define MEM_REG_SB   0xFF01
+#define MEM_REG_SC   0xFF02
 #define MEM_REG_DIV  0xFF04
 #define MEM_REG_TIMA 0xFF05
 #define MEM_REG_TMA  0xFF06
@@ -44,6 +46,8 @@
 #define MEM_REG_OBP1 0xFF49
 #define MEM_REG_WY   0xFF4A
 #define MEM_REG_WX   0xFF4B
+#define MEM_REG_KEY0 0xFF4C
+#define MEM_REG_KEY1 0xFF4D
 #define MEM_REG_VBK  0xFF4F
 #define MEM_REG_BOOT 0xFF50
 #define MEM_REG_HDM1 0xFF51
@@ -51,6 +55,7 @@
 #define MEM_REG_HDM3 0xFF53
 #define MEM_REG_HDM4 0xFF54
 #define MEM_REG_HDM5 0xFF55
+#define MEM_REG_RP   0xFF56
 #define MEM_REG_BCPS 0xFF68
 #define MEM_REG_BCPD 0xFF69
 #define MEM_REG_OCPS 0xFF6A
@@ -64,8 +69,8 @@ typedef struct gb_s gb_t;
 
 enum cgb_mode
 {
-	CGB_YES,
 	CGB_NO,
+	CGB_YES,
 	CGB_FORCE,
 };
 
@@ -84,6 +89,10 @@ typedef struct mem_s
 	uint8_t joyp;
 	uint8_t dmatransfer;
 	uint16_t timer;
+	uint16_t hdma_src;
+	uint16_t hdma_dst;
+	uint16_t hdma_len;
+	bool doublespeed;
 	enum cgb_mode cgb;
 	mbc_t *mbc;
 	gb_t *gb;
@@ -93,6 +102,7 @@ mem_t *mem_new(gb_t *gb, mbc_t *mbc);
 void mem_del(mem_t *mem);
 
 void mem_dmatransfer(mem_t *mem);
+void mem_hdmatransfer(mem_t *mem);
 
 static inline uint8_t mem_get_reg(mem_t *mem, uint16_t addr)
 {
