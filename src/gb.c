@@ -80,7 +80,7 @@ static void timer_clock(gb_t *gb)
 
 	gb->mem->timer++;
 	uint8_t tac = mem_get_reg(gb->mem, MEM_REG_TAC);
-	uint8_t tmp;
+	uint16_t tmp;
 	if (tac & (1 << 2))
 	{
 		static const uint16_t masks[] = {1 << 9, 1 << 3, 1 << 5, 1 << 7};
@@ -122,14 +122,13 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad)
 {
 	gb->frame++;
 
-	if ( joypad & GB_BUTTON_LEFT )
-		fprintf(stderr, "left\n");
-
 	if (gb->mem->joyp != joypad)
 	{
 		gb->mem->joyp = joypad;
 		mem_set_reg(gb->mem, MEM_REG_IF, mem_get_reg(gb->mem, MEM_REG_IF) | (1 << 4));
 	}
+
+	gb->gpu->windowlines = 0;
 
 	for (size_t y = 0; y < 144; ++y)
 	{

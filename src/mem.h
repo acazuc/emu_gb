@@ -116,22 +116,16 @@ static inline void mem_set_reg(mem_t *mem, uint16_t addr, uint8_t v)
 
 static inline uint8_t mem_get_vram0(mem_t *mem, uint16_t addr)
 {
-	if (mem->dmatransfer)
-		return 0;
 	return mem->vram[addr - 0x8000];
 }
 
 static inline uint8_t mem_get_vram1(mem_t *mem, uint16_t addr)
 {
-	if (mem->dmatransfer)
-		return 0;
 	return mem->vram[addr - 0x8000 + 0x2000];
 }
 
 static inline uint8_t mem_get_oam(mem_t *mem, uint16_t addr)
 {
-	if (mem->dmatransfer)
-		return 0;
 	return mem->oam[addr - 0xFE00];
 }
 

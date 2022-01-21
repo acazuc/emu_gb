@@ -29,7 +29,7 @@ typedef struct gb_s
 	cpu_t *cpu;
 	gpu_t *gpu;
 	apu_t *apu;
-	uint8_t lasttimer;
+	uint16_t lasttimer;
 	uint8_t timerint;
 	uint32_t frame;
 } gb_t;

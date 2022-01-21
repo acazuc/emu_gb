@@ -221,6 +221,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 			mbc3_update_rambank(mbc);
 			break;
 		case MBC5:
+			mbc->rombank = 1;
 			mbc5_update_rombank(mbc);
 			mbc5_update_rambank(mbc);
 			break;
@@ -256,11 +257,10 @@ static void mbc1_update_rombank(mbc_t *mbc)
 	if (rombank > mbc->rombanksnb)
 	{
 		fprintf(stderr, "invalid mbc1 rombank: %x / %x\n", rombank, mbc->rombanksnb);
-		mbc->rombankptr = NULL;
-		return;
+		rombank %= mbc->rombanksnb + 1;
 	}
 
-	mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+	mbc->rombankptr = &mbc->data[0x4000 * rombank];
 }
 
 static void mbc1_update_rambank(mbc_t *mbc)
@@ -297,11 +297,10 @@ static void mbc2_update_rombank(mbc_t *mbc)
 	if (rombank > mbc->rombanksnb)
 	{
 		fprintf(stderr, "invalid mbc2 rombank: %x / %x\n", rombank, mbc->rombanksnb);
-		mbc->rombankptr = NULL;
-		return;
+		rombank %= mbc->rombanksnb + 1;
 	}
 
-	mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+	mbc->rombankptr = &mbc->data[0x4000 * rombank];
 }
 
 static void mbc2_update_rambank(mbc_t *mbc)
@@ -317,15 +316,15 @@ static void mbc2_update_rambank(mbc_t *mbc)
 
 static void mbc3_update_rombank(mbc_t *mbc)
 {
-	if (mbc->rombank > mbc->rombanksnb)
+	uint8_t rombank = mbc->rombank;
+	if (rombank > mbc->rombanksnb)
 	{
 		fprintf(stderr, "invalid mbc3 rombank: %x / %x\n", mbc->rombank, mbc->rombanksnb);
-		mbc->rombankptr = NULL;
-		return;
+		rombank %= mbc->rombanksnb + 1;
 	}
 
 	if (mbc->rombank)
-		mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+		mbc->rombankptr = &mbc->data[0x4000 * rombank];
 	else
 		mbc->rombankptr = &mbc->data[0x4000];
 }
@@ -350,14 +349,14 @@ static void mbc3_update_rambank(mbc_t *mbc)
 
 static void mbc5_update_rombank(mbc_t *mbc)
 {
-	if (mbc->rombank > mbc->rombanksnb)
+	uint8_t rombank = mbc->rombank;
+	if (rombank > mbc->rombanksnb)
 	{
 		fprintf(stderr, "invalid mbc5 rombank: %x / %x\n", mbc->rombank, mbc->rombanksnb);
-		mbc->rombankptr = NULL;
-		return;
+		rombank %= mbc->rombanksnb + 1;
 	}
 
-	mbc->rombankptr = &mbc->data[0x4000 * mbc->rombank];
+	mbc->rombankptr = &mbc->data[0x4000 * rombank];
 }
 
 static void mbc5_update_rambank(mbc_t *mbc)
@@ -397,68 +396,72 @@ uint8_t mbc_get(mbc_t *mbc, uint16_t addr)
 					return mbc->data[addr];
 				fprintf(stderr, "rom too short: %x / %x\n", addr, (unsigned)mbc->size);
 			}
-			return 0;
+			return 0xff;
 		case MBC1:
 			if (addr < 0x8000)
 			{
 				if (!mbc->rombankptr)
-					return 0;
+					return 0xff;
 				return mbc->rombankptr[addr - 0x4000];
 			}
-			if (addr < 0xC000)
+			if (addr >= 0xA000 && addr < 0xC000)
 			{
 				if (!mbc->rambankptr)
-					return 0;
+					return 0xff;
 				return mbc->rambankptr[addr - 0xA000];
 			}
-			return 0;
+			fprintf(stderr, "mbc1 read from unknown addr: %04x\n", addr);
+			return 0xff;
 		case MBC2:
 			if (addr < 0x8000)
 			{
 				if (!mbc->rombankptr)
-					return 0;
+					return 0xff;
 				return mbc->rombankptr[addr - 0x4000];
 			}
-			if (addr < 0xC000)
+			if (addr >= 0xA000 && addr < 0xC000)
 			{
 				if (!mbc->rambankptr)
-					return 0;
+					return 0xff;
 				return mbc->rambankptr[addr - 0xA000] & 0xf;
 			}
-			return 0;
+			fprintf(stderr, "mbc2 read from unknown addr: %04x\n", addr);
+			return 0xff;
 		case MBC3:
 			if (addr < 0x8000)
 			{
 				if (!mbc->rombankptr)
-					return 0;
+					return 0xff;
 				return mbc->rombankptr[addr - 0x4000];
 			}
-			if (addr < 0xC000)
+			if (addr >= 0xA000 && addr < 0xC000)
 			{
 				if (mbc->rambank > 0x3)
 				{
 					//XXX: clock
-					return 0;
+					return 0xff;
 				}
 				if (!mbc->rambankptr)
-					return 0;
+					return 0xff;
 				return mbc->rambankptr[addr - 0xA000];
 			}
-			return 0;
+			fprintf(stderr, "mbc3 read from unknown addr: %04x\n", addr);
+			return 0xff;
 		case MBC5:
 			if (addr < 0x8000)
 			{
 				if (!mbc->rombankptr)
-					return 0;
+					return 0xff;
 				return mbc->rombankptr[addr - 0x4000];
 			}
-			if (addr < 0xC000)
+			if (addr >= 0xA000 && addr < 0xC000)
 			{
 				if (!mbc->rambankptr)
-					return 0;
+					return 0xff;
 				return mbc->rambankptr[addr - 0xA000];
 			}
-			return 0;
+			fprintf(stderr, "mbc5 read from unknown addr: %04x\n", addr);
+			return 0xff;
 		case MBC6:
 		case MBC7:
 		case MBC_HUC1:
@@ -504,10 +507,13 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 				mbc1_update_rambank(mbc);
 				return;
 			}
-
-			if (!mbc->rambankptr)
-				return;
-			mbc->rambankptr[addr - 0xA000] = v;
+			if (addr >= 0xA000 && addr < 0xC000)
+			{
+				if (!mbc->rambankptr)
+					return;
+				mbc->rambankptr[addr - 0xA000] = v;
+			}
+			fprintf(stderr, "mbc1 write to unknown addr: %04x\n", addr);
 			return;
 		case MBC2:
 			if (addr < 0x2000)
@@ -522,20 +528,20 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 				mbc2_update_rombank(mbc);
 				return;
 			}
-			if (addr < 0xA000)
-				return;
-
-			if (!mbc->rambankptr)
-				return;
-
-			addr -= 0xA000;
-			if (addr > 0x1FF)
+			if (addr >= 0xA000 && addr < 0xC000)
 			{
-				fprintf(stderr, "invalid RAM write: %x\n", 0xA000 + addr);
+				if (!mbc->rambankptr)
+					return;
+				addr -= 0xA000;
+				if (addr > 0x1FF)
+				{
+					fprintf(stderr, "invalid RAM write: %x\n", 0xA000 + addr);
+					return;
+				}
+				mbc->rambankptr[addr] = v & 0xf;
 				return;
 			}
-
-			mbc->rambankptr[addr] = v & 0xf;
+			fprintf(stderr, "mbc2 write to unknown addr: %04x\n", addr);
 			return;
 		case MBC3:
 			if (addr < 0x2000)
@@ -561,20 +567,24 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 				fprintf(stderr, "unsupported clock: [%x] = %x\n", addr, v);
 				return;
 			}
-			if (mbc->rambank > 0x3)
+			if (addr >= 0xA000 && addr < 0xC000)
 			{
-				fprintf(stderr, "unsupported rtc\n");
+				if (mbc->rambank > 0x3)
+				{
+					fprintf(stderr, "unsupported rtc\n");
+					return;
+				}
+				if (!mbc->rambankptr)
+					return;
+				mbc->rambankptr[addr - 0xA000] = v;
 				return;
 			}
-
-			if (!mbc->rambankptr)
-				return;
-			mbc->rambankptr[addr - 0xA000] = v;
+			fprintf(stderr, "mbc3 write to unknown addr: %04x\n", addr);
 			return;
 		case MBC5:
 			if (addr < 0x2000)
 			{
-				mbc->ramenabled = ((v & 0x0F) == 0xA);
+				mbc->ramenabled = (v == 0xA);
 				mbc5_update_rambank(mbc);
 				return;
 			}
@@ -596,6 +606,14 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 				mbc5_update_rambank(mbc);
 				return;
 			}
+			if (addr >= 0xA000 && addr < 0xC000)
+			{
+				if (!mbc->rambankptr)
+					return;
+				mbc->rambankptr[addr - 0xA000] = v;
+				return;
+			}
+			fprintf(stderr, "mbc5 write to unknown addr: %04x\n", addr);
 			return;
 		case MBC6:
 			return;

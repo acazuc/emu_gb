@@ -111,7 +111,7 @@ static void render_window(gpu_t *gpu, uint8_t y)
 		uint8_t ry = y - wy;
 		uint8_t bx = rx % 8;
 		uint8_t by = ry % 8;
-		uint16_t caddr = baseaddr + ((rx - bx) + (ry - by) * 32) / 8;
+		uint16_t caddr = baseaddr + ((rx - bx) + (gpu->windowlines - gpu->windowlines % 8) * 32) / 8;
 		uint16_t charcode = mem_get_vram0(gpu->mem, caddr);
 		uint16_t addr = charaddr + (haddr ? charcode * 16 : (int8_t)charcode * 16);
 		if (gpu->mem->cgb != CGB_NO)
@@ -119,6 +119,7 @@ static void render_window(gpu_t *gpu, uint8_t y)
 		else
 			render_tile_dmg(gpu, addr, x, y, bx, by);
 	}
+	gpu->windowlines++;
 }
 
 static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16)
@@ -151,7 +152,7 @@ static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16)
 {
 	uint8_t orgbx = bx;
-	bool palette = gpu->mem->cgb == CGB_YES ? (attr & 0x3) : ((attr >> 4) & 1);
+	uint8_t palette = (gpu->mem->cgb == CGB_YES) ? (attr & 0x3) : ((attr >> 4) & 1);
 	bool prio = (attr >> 7) & 1;
 	if (attr & (1 << 5))
 		bx = 7 - bx;
@@ -173,8 +174,16 @@ static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 	}
 	if (!coloridx)
 		return;
-	if ((gpu->priorities[x] || prio) && gpu->hasprinted[x])
-		return;
+	if (gpu->mem->cgb == CGB_YES)
+	{
+		if ((mem_get_reg(gpu->mem, MEM_REG_LCDC) & 0x1) == 1 && (gpu->priorities[x] || prio) && gpu->hasprinted[x])
+			return;
+	}
+	else
+	{
+		if ((gpu->priorities[x] || prio) && gpu->hasprinted[x])
+			return;
+	}
 	if (orgbx >= gpu->lowestx[x])
 		return;
 	if (gpu->mem->cgb == CGB_FORCE)
@@ -233,13 +242,13 @@ void gpu_render_line(gpu_t *gpu, uint8_t y)
 
 	memset(gpu->priorities, 0, sizeof(gpu->priorities));
 	memset(gpu->hasprinted, 0, sizeof(gpu->hasprinted));
-	if (gpu->mem->cgb != CGB_NO || mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 0))
+	if (gpu->mem->cgb == CGB_YES || mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 0))
 	{
 		render_background(gpu, y);
 		if (mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 5))
 			render_window(gpu, y);
 	}
 
-	if (!gpu->mem->dmatransfer && mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 1))
+	if (gpu->mem->dmatransfer == 0xff && mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 1))
 		render_objects(gpu, y);
 }

@@ -66,7 +66,7 @@ static size_t decode_instr_param(cpu_t *cpu, char *cur, size_t len, const char *
 {
 	if (l == 2 && !strncmp(s, "nn", l))
 	{
-		snprintf(cur, len, "%%%02x%02x", mem_get(cpu->mem, cpu->regs.pc + *n), mem_get(cpu->mem, cpu->regs.pc + *n + 1));
+		snprintf(cur, len, "%%%02x%02x", mem_get(cpu->mem, cpu->regs.pc + *n + 1), mem_get(cpu->mem, cpu->regs.pc + *n));
 		*n += 2;
 		return 5;
 	}
@@ -85,7 +85,7 @@ static size_t decode_instr_param(cpu_t *cpu, char *cur, size_t len, const char *
 	}
 	else if (l == 4 && !strncmp(s, "(nn)", l))
 	{
-		snprintf(cur, len, "(%%%02x%02x)", mem_get(cpu->mem, cpu->regs.pc + *n), mem_get(cpu->mem, cpu->regs.pc + *n + 1));
+		snprintf(cur, len, "(%%%02x%02x)", mem_get(cpu->mem, cpu->regs.pc + *n + 1), mem_get(cpu->mem, cpu->regs.pc + *n));
 		*n += 2;
 		return 7;
 	}
@@ -164,7 +164,7 @@ static void cpu_cycle(cpu_t *cpu)
 	static bool debug = false;
 
 #if 0
-	if (cpu->regs.pc == 0x4174)
+	if (cpu->regs.pc == 0x4240)
 		debug = true;
 #endif
 
@@ -211,7 +211,7 @@ static void cpu_cycle(cpu_t *cpu)
 		cpu->instr_cycle++;
 	}
 
-	if (cpu->mem->dmatransfer)
+	if (cpu->mem->dmatransfer != 0xff)
 	{
 		mem_dmatransfer(cpu->mem);
 		cpu->mem->dmatransfer--;
