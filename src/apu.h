@@ -11,31 +11,38 @@ typedef struct apu_sample_s
 	uint16_t r;
 } apu_sample_t;
 
+typedef struct apu_swp_s
+{
+	uint8_t step;
+	uint8_t time;
+	uint8_t dir;
+	uint8_t cnt;
+	uint8_t nb;
+} apu_swp_t;
+
+typedef struct apu_env_s
+{
+	uint8_t step;
+	uint8_t time;
+	uint8_t dir;
+	uint8_t val;
+} apu_env_t;
+
 typedef struct apu_s
 {
 	apu_sample_t data[APU_FRAME_SAMPLES];
 	uint32_t sample;
 	uint32_t clock;
 	uint8_t wave1_haslen;
-	uint8_t wave1_swptime;
-	uint8_t wave1_swpstep;
-	uint8_t wave1_swpval;
-	uint8_t wave1_swpdir;
-	uint8_t wave1_swpnb;
-	uint8_t wave1_envstep;
-	uint8_t wave1_envval;
-	uint8_t wave1_envdir;
-	uint8_t wave1_envnb;
+	apu_swp_t wave1_swp;
+	apu_env_t wave1_env;
 	uint8_t wave1_duty;
 	uint32_t wave1_len;
 	uint32_t wave1_val;
 	uint32_t wave1_cnt;
 	uint32_t wave1_nb;
 	uint8_t wave2_haslen;
-	uint8_t wave2_envstep;
-	uint8_t wave2_envval;
-	uint8_t wave2_envdir;
-	uint8_t wave2_envnb;
+	apu_env_t wave2_env;
 	uint8_t wave2_duty;
 	uint32_t wave2_len;
 	uint32_t wave2_val;
@@ -47,10 +54,7 @@ typedef struct apu_s
 	uint32_t wave3_cnt;
 	uint32_t wave3_nb;
 	uint8_t wave4_haslen;
-	uint8_t wave4_envstep;
-	uint8_t wave4_envval;
-	uint8_t wave4_envdir;
-	uint8_t wave4_envnb;
+	apu_env_t wave4_env;
 	uint32_t wave4_cycle;
 	uint32_t wave4_len;
 	uint32_t wave4_val;
