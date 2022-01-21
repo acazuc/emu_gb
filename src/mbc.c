@@ -23,9 +23,9 @@ mbc_t *mbc_new(const void *data, size_t len)
 	}
 
 	fprintf(stderr, "%s\n", &((char*)data)[0x134]);
-	if ((size_t)((32 * 1024) << ((uint8_t*)data)[0x148]) < len)
+	if (len < (size_t)((32 * 1024) << ((uint8_t*)data)[0x148]))
 	{
-		fprintf(stderr, "rom has invalid size: got %u, expected %u\n", (unsigned)((32 * 1024) << ((uint8_t*)data)[0x148]), (unsigned)len);
+		fprintf(stderr, "rom has invalid size: got %u, expected %u\n", (unsigned)len, (unsigned)((32 * 1024) << ((uint8_t*)data)[0x148]));
 		return NULL;
 	}
 
