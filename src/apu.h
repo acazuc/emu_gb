@@ -5,12 +5,6 @@
 
 #include "mem.h"
 
-typedef struct apu_sample_s
-{
-	uint16_t l;
-	uint16_t r;
-} apu_sample_t;
-
 typedef struct apu_swp_s
 {
 	uint8_t step;
@@ -30,7 +24,7 @@ typedef struct apu_env_s
 
 typedef struct apu_s
 {
-	apu_sample_t data[APU_FRAME_SAMPLES];
+	uint16_t data[APU_FRAME_SAMPLES];
 	uint32_t sample;
 	uint32_t clock;
 	uint8_t wave1_haslen;
@@ -49,6 +43,7 @@ typedef struct apu_s
 	uint32_t wave2_cnt;
 	uint32_t wave2_nb;
 	uint8_t wave3_haslen;
+	uint32_t wave3_gain;
 	uint32_t wave3_len;
 	uint32_t wave3_val;
 	uint32_t wave3_cnt;

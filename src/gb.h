@@ -39,4 +39,7 @@ void gb_del(gb_t *gb);
 
 void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad);
 
+void gb_get_mbc_ram(gb_t *gb, uint8_t **data, size_t *size);
+void gb_get_mbc_rtc(gb_t *gb, uint8_t **data, size_t *size);
+
 #endif

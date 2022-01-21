@@ -46,6 +46,7 @@ typedef struct mbc_s
 	uint16_t rombank;
 	uint8_t options;
 	uint8_t bankmode;
+	uint8_t rtc[0x5];
 } mbc_t;
 
 mbc_t *mbc_new(const void *data, size_t len);

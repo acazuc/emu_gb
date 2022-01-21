@@ -136,7 +136,7 @@ static int16_t audio_buf[AUDIO_FRAME * 2];
 
 void retro_run(void)
 {
-	int16_t tmp_audio[2 * 804];
+	int16_t tmp_audio[804];
 	uint32_t joypad = 0;
 
 	input_poll_cb();
@@ -157,8 +157,11 @@ void retro_run(void)
 	for (size_t i = 0; i < AUDIO_FRAME; ++i)
 	{
 		uint16_t dst = i * 804 / AUDIO_FRAME;
-		audio_buf[i * 2 + 0] = tmp_audio[dst * 2 + 0];
-		audio_buf[i * 2 + 1] = tmp_audio[dst * 2 + 1];
+		uint16_t sample = tmp_audio[dst];
+		uint8_t l = sample >> 8;
+		uint8_t r = sample >> 0;
+		audio_buf[i * 2 + 0] = (l >> 1) | (l << 7);
+		audio_buf[i * 2 + 1] = (r >> 1) | (r << 7);
 	}
 
 	audio_batch_cb(audio_buf, AUDIO_FRAME);
@@ -245,13 +248,33 @@ bool retro_unserialize(const void *data, size_t size)
 
 void *retro_get_memory_data(unsigned id)
 {
-	(void)id;
+	uint8_t *data;
+	size_t size;
+	switch (id)
+	{
+		case RETRO_MEMORY_SAVE_RAM:
+			gb_get_mbc_ram(g_gb, &data, &size);
+			return data;
+		case RETRO_MEMORY_RTC:
+			gb_get_mbc_rtc(g_gb, &data, &size);
+			return data;
+	}
 	return NULL;
 }
 
 size_t retro_get_memory_size(unsigned id)
 {
-	(void)id;
+	uint8_t *data;
+	size_t size;
+	switch (id)
+	{
+		case RETRO_MEMORY_SAVE_RAM:
+			gb_get_mbc_ram(g_gb, &data, &size);
+			return size;
+		case RETRO_MEMORY_RTC:
+			gb_get_mbc_rtc(g_gb, &data, &size);
+			return size;
+	}
 	return 0;
 }
 

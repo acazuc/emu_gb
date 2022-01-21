@@ -152,7 +152,7 @@ static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16)
 {
 	uint8_t orgbx = bx;
-	uint8_t palette = (gpu->mem->cgb == CGB_YES) ? (attr & 0x3) : ((attr >> 4) & 1);
+	uint8_t palette = (gpu->mem->cgb == CGB_YES) ? (attr & 0x7) : ((attr >> 4) & 1);
 	bool prio = (attr >> 7) & 1;
 	if (attr & (1 << 5))
 		bx = 7 - bx;

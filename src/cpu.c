@@ -164,7 +164,7 @@ static void cpu_cycle(cpu_t *cpu)
 	static bool debug = false;
 
 #if 0
-	if (cpu->regs.pc == 0x4240)
+	if (cpu->regs.pc == 0x632)
 		debug = true;
 #endif
 

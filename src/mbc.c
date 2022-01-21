@@ -438,7 +438,8 @@ uint8_t mbc_get(mbc_t *mbc, uint16_t addr)
 			{
 				if (mbc->rambank > 0x3)
 				{
-					//XXX: clock
+					if (mbc->rambank >= 0x8 && mbc->rambank <= 0xC)
+						return mbc->rtc[mbc->rambank - 0x8];
 					return 0xff;
 				}
 				if (!mbc->rambankptr)
@@ -512,6 +513,7 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 				if (!mbc->rambankptr)
 					return;
 				mbc->rambankptr[addr - 0xA000] = v;
+				return;
 			}
 			fprintf(stderr, "mbc1 write to unknown addr: %04x\n", addr);
 			return;
@@ -564,14 +566,15 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 			}
 			if (addr < 0x8000)
 			{
-				fprintf(stderr, "unsupported clock: [%x] = %x\n", addr, v);
+				//XXX latch clock
 				return;
 			}
 			if (addr >= 0xA000 && addr < 0xC000)
 			{
 				if (mbc->rambank > 0x3)
 				{
-					fprintf(stderr, "unsupported rtc\n");
+					if (mbc->rambank >= 0x8 && mbc->rambank <= 0xC)
+						mbc->rtc[mbc->rambank - 0x8] = v;
 					return;
 				}
 				if (!mbc->rambankptr)

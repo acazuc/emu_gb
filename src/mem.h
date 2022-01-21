@@ -62,6 +62,8 @@
 #define MEM_REG_OCPD 0xFF6B
 #define MEM_REG_OPRI 0xFF6C
 #define MEM_REG_SVBK 0xFF70
+#define MEM_REG_PCM1 0xFF76
+#define MEM_REG_PCM2 0xFF77
 #define MEM_REG_IE   0xFFFF
 
 typedef struct mbc_s mbc_t;

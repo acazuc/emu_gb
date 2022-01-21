@@ -205,3 +205,28 @@ void gb_frame(gb_t *gb, uint8_t *video_buf, int16_t *audio_buf, uint32_t joypad)
 	memcpy(video_buf, gb->gpu->data, 160 * 144 * 4);
 	memcpy(audio_buf, gb->apu->data, sizeof(gb->apu->data));
 }
+
+void gb_get_mbc_ram(gb_t *gb, uint8_t **data, size_t *size)
+{
+	if (gb->mbc->rambanksnb)
+	{
+		*data = gb->mbc->rambanks;
+		*size = 0x2000 * gb->mbc->rambanksnb;
+		return;
+	}
+
+	*data = NULL;
+	*size = 0;
+}
+
+void gb_get_mbc_rtc(gb_t *gb, uint8_t **data, size_t *size)
+{
+	if (gb->mbc->options & MBC_OPT_BATTERY)
+	{
+		*data = gb->mbc->rtc;
+		*size = sizeof(gb->mbc->rtc);
+		return;
+	}
+	*data = NULL;
+	*size = 0;
+}

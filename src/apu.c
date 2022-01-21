@@ -3,8 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#define APU_SAMPLE(l, r) ((apu_sample_t){l, r})
-
 static uint8_t duties[4] = {1, 2, 4, 6};
 
 apu_t *apu_new(mem_t *mem)
@@ -51,8 +49,7 @@ static uint8_t channel3(apu_t *apu)
 	if (pos & 1)
 		sample >>= 4;
 	sample &= 0xf;
-	uint8_t nr32 = mem_get_reg(apu->mem, MEM_REG_NR32);
-	return (sample | (sample << 4)) >> gain_shifts[(nr32 & 0x60) >> 5];
+	return (sample | (sample << 4)) >> gain_shifts[apu->wave3_gain];
 }
 
 static uint8_t channel4(apu_t *apu)
@@ -62,50 +59,53 @@ static uint8_t channel4(apu_t *apu)
 	return (apu->wave4_val & 1) ? gain : 0;
 }
 
-static apu_sample_t gen_sample(apu_t *apu)
+static uint16_t gen_sample(apu_t *apu)
 {
 	uint8_t nr52 = mem_get_reg(apu->mem, MEM_REG_NR52);
 	if (!(nr52 & (1 << 7)))
-		return APU_SAMPLE(0, 0);
+		return 0;
 	uint8_t nr50 = mem_get_reg(apu->mem, MEM_REG_NR50);
 	uint8_t nr51 = mem_get_reg(apu->mem, MEM_REG_NR51);
 	uint16_t l = 0;
 	uint16_t r = 0;
+	uint8_t values[4] = {0};
 	if (nr52 & (1 << 0))
 	{
-		uint8_t v = channel1(apu) >> 2;
+		values[0] = channel1(apu) >> 2;
 		if (nr51 & (1 << 4))
-			l += v;
+			l += values[0];
 		if (nr51 & (1 << 0))
-			r += v;
+			r += values[0];
 	}
 	if (nr52 & (1 << 1))
 	{
-		uint8_t v = channel2(apu) >> 2;
+		values[1] = channel2(apu) >> 2;
 		if (nr51 & (1 << 5))
-			l += v;
+			l += values[1];
 		if (nr51 & (1 << 1))
-			r += v;
+			r += values[1];
 	}
 	if (nr52 & (1 << 2))
 	{
-		uint8_t v = channel3(apu) >> 2;
+		values[2] = channel3(apu) >> 2;
 		if (nr51 & (1 << 6))
-			l += v;
+			l += values[2];
 		if (nr51 & (1 << 2))
-			r += v;
+			r += values[2];
 	}
 	if (nr52 & (1 << 3))
 	{
-		uint8_t v = channel4(apu) >> 2;
+		values[3] = channel4(apu) >> 2;
 		if (nr51 & (1 << 7))
-			l += v;
+			l += values[3];
 		if (nr51 & (1 << 3))
-			r += v;
+			r += values[3];
 	}
-	l *= (nr50 & 0x70) >> 4;
-	r *= (nr50 & 0x07) >> 0;
-	return APU_SAMPLE(l << 4, r << 4);
+	l = l * ((nr50 & 0x70) >> 4) / 7;
+	r = r * ((nr50 & 0x07) >> 0) / 7;
+	mem_set_reg(apu->mem, MEM_REG_PCM1, (values[1] & 0xF0) | (values[0] >> 4));
+	mem_set_reg(apu->mem, MEM_REG_PCM2, (values[3] & 0xF0) | (values[2] >> 4));
+	return (l << 8) | r;
 }
 
 static void length_tick(apu_t *apu)
@@ -274,7 +274,7 @@ void apu_clock(apu_t *apu)
 	if (apu->clock % 70224 == apu->sample * 70224 / APU_FRAME_SAMPLES)
 	{
 		apu->data[apu->sample] = gen_sample(apu);
-		apu->sample = (apu->sample + 1) % APU_FRAME_SAMPLES;;
+		apu->sample = (apu->sample + 1) % APU_FRAME_SAMPLES;
 	}
 
 	apu->clock++;
@@ -324,10 +324,12 @@ void apu_start_channel3(apu_t *apu)
 {
 	mem_set_reg(apu->mem, MEM_REG_NR52, mem_get_reg(apu->mem, MEM_REG_NR52) | (1 << 2));
 	uint8_t nr31 = mem_get_reg(apu->mem, MEM_REG_NR31);
+	uint8_t nr32 = mem_get_reg(apu->mem, MEM_REG_NR32);
 	uint8_t nr33 = mem_get_reg(apu->mem, MEM_REG_NR33);
 	uint8_t nr34 = mem_get_reg(apu->mem, MEM_REG_NR34);
 	apu->wave3_nb = (2048 - (nr33 | ((nr34 & 0x7) << 8)));
 	apu->wave3_len = 256 - nr31;
+	apu->wave3_gain = (nr32 & 0x60) >> 5;
 	apu->wave3_haslen = nr34 & (1 << 6);
 }
 

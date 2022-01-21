@@ -35,7 +35,7 @@ mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 		return NULL;
 	}
 
-	mem->cgb = (mbc->data[0x143] & 0x80) != 0 ? CGB_YES : CGB_NO;
+	mem->cgb = (mbc->data[0x143] & 0x80) != 0 ? CGB_YES : CGB_FORCE;
 	if (mem->cgb != CGB_NO)
 	{
 		size_t i = 0;
@@ -252,7 +252,7 @@ static void bcpd_set(mem_t *mem, uint8_t v)
 	uint8_t bcps = mem_get_reg(mem, MEM_REG_BCPS);
 	mem->bgpalette[bcps & 0x3F] = v;
 	if (bcps & (1 << 7))
-		mem_set_reg(mem, MEM_REG_BCPS, 0x80 | (((bcps & 0x3F) + 1) & 0x3F));
+		mem_set_reg(mem, MEM_REG_BCPS, 0xC0 | (((bcps & 0x3F) + 1) & 0x3F));
 }
 
 static uint8_t ocpd_get(mem_t *mem)
@@ -266,7 +266,7 @@ static void ocpd_set(mem_t *mem, uint8_t v)
 	uint8_t ocps = mem_get_reg(mem, MEM_REG_OCPS);
 	mem->objpalette[ocps & 0x3F] = v;
 	if (ocps & (1 << 7))
-		mem_set_reg(mem, MEM_REG_OCPS, (ocps & 0xB0) | (((ocps & 0x3F) + 1) & 0x3F));
+		mem_set_reg(mem, MEM_REG_OCPS, (ocps & 0xC0) | (((ocps & 0x3F) + 1) & 0x3F));
 }
 
 static void svbk_set(mem_t *mem, uint8_t v)
