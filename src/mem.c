@@ -35,7 +35,7 @@ mem_t *mem_new(gb_t *gb, mbc_t *mbc)
 		return NULL;
 	}
 
-	mem->cgb = (mbc->data[0x143] & 0x80) != 0 ? CGB_YES : CGB_FORCE;
+	mem->cgb = (mbc->data[0x143] & 0x80) != 0 ? CGB_YES : CGB_NO;
 	if (mem->cgb != CGB_NO)
 	{
 		size_t i = 0;
