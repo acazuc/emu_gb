@@ -107,7 +107,7 @@ static uint8_t stat_get(mem_t *mem)
 
 static void stat_set(mem_t *mem, uint8_t v)
 {
-	mem_set_reg(mem, MEM_REG_STAT, (mem_get_reg(mem, MEM_REG_STAT) & 0x03) | (v & 0x74));
+	mem_set_reg(mem, MEM_REG_STAT, (mem_get_reg(mem, MEM_REG_STAT) & 0x03) | (v & 0x7C));
 }
 
 static uint8_t div_get(mem_t *mem)

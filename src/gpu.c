@@ -113,9 +113,9 @@ static void render_window(gpu_t *gpu, uint8_t x, uint8_t y)
 		render_tile_dmg(gpu, addr, x, y, bx, by);
 }
 
-static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16)
+static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16, int8_t *lowestx, uint8_t *color)
 {
-	uint8_t orgbx = bx;
+	int8_t orgbx = bx;
 	bool palette = (attr >> 4) & 1;
 	bool prio = (attr >> 7) & 1;
 	if (attr & (1 << 5))
@@ -125,24 +125,27 @@ static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 	if (height16)
 		charcode &= ~1;
 	uint16_t charaddr = 0x8000 + charcode * 16;
+	if (orgbx <= *lowestx)
+		return;
+	*lowestx = orgbx;
 	uint8_t pixel = (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 0) >> (7 - bx)) & 1) << 0)
 	              | (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	if (!pixel)
+	{
+		*color = 0xff;
 		return;
+	}
 	if ((gpu->priorities[x] || prio) && gpu->hasprinted[x])
+	{
+		*color = 0xff;
 		return;
-	if (orgbx >= gpu->lowestx[x])
-		return;
-	gpu->lowestx[x] = orgbx;
-	static const uint8_t values[4] = {0xFF, 0xAA, 0x55, 0x00};
-	uint8_t color = (mem_get_reg(gpu->mem, palette ? MEM_REG_OBP1 : MEM_REG_OBP0) >> (pixel << 1)) & 3;
-	color = values[color];
-	memset(&gpu->data[(y * 160 + x) * 4], color, 4);
+	}
+	*color = (mem_get_reg(gpu->mem, palette ? MEM_REG_OBP1 : MEM_REG_OBP0) >> (pixel << 1)) & 3;
 }
 
-static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16)
+static bool render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16, int8_t *lowestx)
 {
-	uint8_t orgbx = bx;
+	int8_t orgbx = bx;
 	uint8_t palette = (gpu->mem->cgb == CGB_YES) ? (attr & 0x7) : ((attr >> 4) & 1);
 	bool prio = (attr >> 7) & 1;
 	if (attr & (1 << 5))
@@ -152,6 +155,12 @@ static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 	if (height16)
 		charcode &= ~1;
 	uint16_t charaddr = 0x8000 + charcode * 16;
+	if ((mem_get_reg(gpu->mem, MEM_REG_OPRI) & (1 << 0)))
+	{
+		if (orgbx <= *lowestx)
+			return false;
+		*lowestx = orgbx;
+	}
 	uint8_t coloridx;
 	if (attr & (1 << 3))
 	{
@@ -164,19 +173,17 @@ static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 		         | (((mem_get_vram0(gpu->mem, charaddr + by * 2 + 1) >> (7 - bx)) & 1) << 1);
 	}
 	if (!coloridx)
-		return;
-	if (gpu->mem->cgb == CGB_YES)
+		return false;
+	if (!(mem_get_reg(gpu->mem, MEM_REG_OPRI) & (1 << 0)))
 	{
-		if ((mem_get_reg(gpu->mem, MEM_REG_LCDC) & 0x1) == 1 && (gpu->priorities[x] || prio) && gpu->hasprinted[x])
-			return;
+		if ((mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 0)) && (gpu->priorities[x] || prio) && gpu->hasprinted[x])
+			return false;
 	}
 	else
 	{
 		if ((gpu->priorities[x] || prio) && gpu->hasprinted[x])
-			return;
+			return false;
 	}
-	//if (orgbx >= gpu->lowestx[x])
-	//	return;
 	if (gpu->mem->cgb == CGB_FORCE)
 		coloridx = (mem_get_reg(gpu->mem, palette ? MEM_REG_OBP1 : MEM_REG_OBP0) >> (coloridx << 1)) & 3;
 	uint8_t *palptr = &gpu->mem->objpalette[palette * 8 + coloridx * 2];
@@ -188,34 +195,40 @@ static void render_object_cgb(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint
 		0xff,
 	};
 	memcpy(&gpu->data[(y * 160 + x) * 4], color, 4);
-	gpu->lowestx[x] = orgbx;
+	return true;
 }
 
 static void render_objects(gpu_t *gpu, uint8_t x, uint8_t y)
 {
+	uint8_t color = 0xff;
+	int8_t lowestx = -1;
 	bool height16 = mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 2);
-	for (uint8_t i = 0; i < 40; ++i)
+	for (uint8_t i = 0; i < gpu->sprites_count; ++i)
 	{
-		uint16_t addr = 0xFE00 + 4 * i;
-		uint8_t cy = mem_get_oam(gpu->mem, addr + 0);
-		if (!cy || cy >= 160 || cy > y + 16 || cy + (height16 ? 16 : 8) <= y + 16)
-			continue;
+		uint16_t addr = 0xFE00 + 4 * gpu->sprites[i];
 		uint8_t cx = mem_get_oam(gpu->mem, addr + 1);
 		if (!cx || cx >= 168 || cx > x + 8 || cx <= x)
 			continue;
-		if (!gpu->sprites_drawn[i])
-		{
-			if (gpu->sprites_count >= 10)
-				continue;
-			gpu->sprites_drawn[i] = 1;
-			gpu->sprites_count++;
-		}
+		uint8_t cy = mem_get_oam(gpu->mem, addr + 0);
 		uint8_t charcode = mem_get_oam(gpu->mem, addr + 2);
 		uint8_t cattr = mem_get_oam(gpu->mem, addr + 3);
 		if (gpu->mem->cgb != CGB_NO)
-			render_object_cgb(gpu, x, y, x - cx + 8, y - cy + 16, charcode, cattr, height16);
+		{
+			if (render_object_cgb(gpu, x, y, x - cx + 8, y - cy + 16, charcode, cattr, height16, &lowestx))
+				return;
+		}
 		else
-			render_object_dmg(gpu, x, y, x - cx + 8, y - cy + 16, charcode, cattr, height16);
+		{
+			render_object_dmg(gpu, x, y, x - cx + 8, y - cy + 16, charcode, cattr, height16, &lowestx, &color);
+		}
+	}
+	if (gpu->mem->cgb == CGB_NO)
+	{
+		if (color != 0xff)
+		{
+			static const uint8_t values[4] = {0xFF, 0xAA, 0x55, 0x00};
+			memset(&gpu->data[(y * 160 + x) * 4], values[color], 4);
+		}
 	}
 }
 
@@ -238,12 +251,29 @@ static void render_pixel(gpu_t *gpu, uint8_t x, uint8_t y)
 		render_objects(gpu, x, y);
 }
 
+static void collect_sprites(gpu_t *gpu, uint8_t y)
+{
+	gpu->sprites_count = 0;
+	bool height16 = mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 2);
+	for (uint8_t i = 0; i < 40; ++i)
+	{
+		uint16_t addr = 0xFE00 + 4 * i;
+		uint8_t cy = mem_get_oam(gpu->mem, addr + 0);
+		if (!cy || cy >= 160 || cy > y + 16 || cy + (height16 ? 16 : 8) <= y + 16)
+			continue;
+		gpu->sprites[gpu->sprites_count++] = i;
+		if (gpu->sprites_count == 10)
+			return;
+	}
+}
+
 void gpu_clock(gpu_t *gpu)
 {
 	if (gpu->y < 144)
 	{
 		if (!gpu->line_cycle)
 		{
+			collect_sprites(gpu, gpu->y);
 			if (mem_get_reg(gpu->mem, MEM_REG_LCDC) & (1 << 7))
 			{
 				uint8_t lyc = mem_get_reg(gpu->mem, MEM_REG_LYC);
@@ -271,9 +301,10 @@ void gpu_clock(gpu_t *gpu)
 				/* mode 3: lcd data */
 				mem_set_reg(gpu->mem, MEM_REG_STAT, (mem_get_reg(gpu->mem, MEM_REG_STAT) & (~0x3)) | 3);
 			}
+			goto end;
 		}
 
-		if (gpu->line_cycle > 80 && gpu->line_cycle < 248)
+		if (gpu->line_cycle >= 84 && gpu->line_cycle <= 244)
 			render_pixel(gpu, gpu->line_cycle - 84, gpu->y);
 
 		if (gpu->line_cycle == 248)
@@ -334,8 +365,5 @@ end:
 			memset(gpu->hasprinted, 0, sizeof(gpu->hasprinted));
 			gpu->windowlines = 0;
 		}
-		memset(gpu->sprites_drawn, 0, sizeof(gpu->sprites_drawn));
-		gpu->sprites_count = 0;
-		memset(gpu->lowestx, 0xFF, sizeof(gpu->lowestx));
 	}
 }

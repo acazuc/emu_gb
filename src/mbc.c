@@ -29,6 +29,7 @@ mbc_t *mbc_new(const void *data, size_t len)
 		return NULL;
 	}
 
+	//uint8_t rombanks = len / (32 * 1024) - 1;
 	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 1;
 	uint8_t rambanks;
 	switch (((uint8_t*)data)[0x149])
@@ -599,7 +600,7 @@ void mbc_set(mbc_t *mbc, uint16_t addr, uint8_t v)
 			}
 			if (addr < 0x4000)
 			{
-				mbc->rombank = (mbc->rombank & 0x00FF) | (v << 8);
+				mbc->rombank = (mbc->rombank & 0x00FF) | ((v << 8) & 0x1);
 				mbc5_update_rombank(mbc);
 				return;
 			}

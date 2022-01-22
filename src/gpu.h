@@ -11,8 +11,7 @@ typedef struct gpu_s
 	uint8_t data[144 * 160 * 4];
 	uint8_t priorities[160];
 	uint8_t hasprinted[160];
-	uint8_t lowestx[160];
-	uint8_t sprites_drawn[40];
+	uint8_t sprites[10];
 	uint8_t sprites_count;
 	uint8_t windowlines;
 	uint16_t line_cycle;
