@@ -4,7 +4,7 @@
 #define INSTR_DEF_LD_RR_NN(r1, r2) \
 INSTR_DEF(ld_##r1####r2##_nn) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -26,7 +26,7 @@ INSTR_DEF_LD_RR_NN(s, p);
 
 INSTR_DEF(ld_nn_sp)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -50,7 +50,7 @@ INSTR_DEF(ld_nn_sp)
 #define INSTR_DEF_PUSH_POP_RR(r1, r2) \
 INSTR_DEF(push_##r1####r2) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -68,7 +68,7 @@ INSTR_DEF(push_##r1####r2) \
 } \
 INSTR_DEF(pop_##r1####r2) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -91,7 +91,7 @@ INSTR_DEF_PUSH_POP_RR(a, f);
 
 INSTR_DEF(ld_sp_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;

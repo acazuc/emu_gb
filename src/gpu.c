@@ -113,7 +113,7 @@ static void render_window(gpu_t *gpu, uint8_t x, uint8_t y)
 		render_tile_dmg(gpu, addr, x, y, bx, by);
 }
 
-static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t y, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16, int8_t *lowestx, uint8_t *color)
+static void render_object_dmg(gpu_t *gpu, uint8_t x, uint8_t bx, uint8_t by, uint8_t charcode, uint8_t attr, bool height16, int8_t *lowestx, uint8_t *color)
 {
 	int8_t orgbx = bx;
 	bool palette = (attr >> 4) & 1;
@@ -219,7 +219,7 @@ static void render_objects(gpu_t *gpu, uint8_t x, uint8_t y)
 		}
 		else
 		{
-			render_object_dmg(gpu, x, y, x - cx + 8, y - cy + 16, charcode, cattr, height16, &lowestx, &color);
+			render_object_dmg(gpu, x, x - cx + 8, y - cy + 16, charcode, cattr, height16, &lowestx, &color);
 		}
 	}
 	if (gpu->mem->cgb == CGB_NO)

@@ -22,15 +22,13 @@ mbc_t *mbc_new(const void *data, size_t len)
 		return NULL;
 	}
 
-	fprintf(stderr, "%s\n", &((char*)data)[0x134]);
 	if (len < (size_t)((32 * 1024) << ((uint8_t*)data)[0x148]))
 	{
 		fprintf(stderr, "rom has invalid size: got %u, expected %u\n", (unsigned)len, (unsigned)((32 * 1024) << ((uint8_t*)data)[0x148]));
 		return NULL;
 	}
 
-	//uint8_t rombanks = len / (32 * 1024) - 1;
-	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 1;
+	uint8_t rombanks = len / (32 * 1024) - 1;
 	uint8_t rambanks;
 	switch (((uint8_t*)data)[0x149])
 	{

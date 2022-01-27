@@ -3,14 +3,13 @@
 
 INSTR_DEF(nop)
 {
-	(void)count;
 	cpu->regs.pc++;
 	return true;
 }
 
 INSTR_DEF(stop)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 		{
@@ -30,7 +29,7 @@ INSTR_DEF(stop)
 
 INSTR_DEF(halt)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			cpu->state = CPU_HALT;
@@ -42,7 +41,7 @@ INSTR_DEF(halt)
 
 INSTR_DEF(ei)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			cpu->ei = 2;
@@ -54,7 +53,7 @@ INSTR_DEF(ei)
 
 INSTR_DEF(di)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			cpu->ime = false;

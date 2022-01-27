@@ -5,7 +5,7 @@
 #define INSTR_DEF_JR_JP_CALL_RET_FLAG(f, flag, ref) \
 INSTR_DEF(jr_##f##_n) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -23,7 +23,7 @@ INSTR_DEF(jr_##f##_n) \
 } \
 INSTR_DEF(jp_##f##_nn) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -44,7 +44,7 @@ INSTR_DEF(jp_##f##_nn) \
 } \
 INSTR_DEF(call_##f##_nn) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -72,7 +72,7 @@ INSTR_DEF(call_##f##_nn) \
 } \
 INSTR_DEF(ret_##f) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -101,7 +101,7 @@ INSTR_DEF_JR_JP_CALL_RET_FLAG(c, CPU_FLAG_C, 1);
 
 INSTR_DEF(jr_dd)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -118,7 +118,7 @@ INSTR_DEF(jr_dd)
 
 INSTR_DEF(jp_nn)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -138,7 +138,7 @@ INSTR_DEF(jp_nn)
 
 INSTR_DEF(jp_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			cpu->regs.pc = cpu->regs.hl;
@@ -150,7 +150,7 @@ INSTR_DEF(jp_hl)
 
 INSTR_DEF(call_nn)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -177,7 +177,7 @@ INSTR_DEF(call_nn)
 
 INSTR_DEF(reti)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -198,7 +198,7 @@ INSTR_DEF(reti)
 
 INSTR_DEF(ret)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -219,7 +219,7 @@ INSTR_DEF(ret)
 #define INSTR_RST(n, d) \
 INSTR_DEF(rst_##n) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -250,7 +250,7 @@ INSTR_RST(38, 0x38);
 #define INSTR_INT(n, d) \
 INSTR_DEF(int_##n) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \

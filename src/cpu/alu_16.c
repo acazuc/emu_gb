@@ -4,7 +4,7 @@
 #define INSTR_DEF_INC_RR(rr) \
 INSTR_DEF(inc_##rr) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -19,7 +19,7 @@ INSTR_DEF(inc_##rr) \
 #define INSTR_DEF_DEC_RR(rr) \
 INSTR_DEF(dec_##rr) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -34,7 +34,7 @@ INSTR_DEF(dec_##rr) \
 #define INSTR_DEF_ADD_HL_RR(rr) \
 INSTR_DEF(add_hl_##rr) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -64,7 +64,7 @@ INSTR_DEF_INC_DEC_RR(sp);
 
 INSTR_DEF(add_sp_n)
 {
-	switch (count) 
+	switch (cpu->instr_cycle) 
 	{
 		case 0:
 			return false;
@@ -92,7 +92,7 @@ INSTR_DEF(add_sp_n)
 
 INSTR_DEF(ld_hl_spn)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;

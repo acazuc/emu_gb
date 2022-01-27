@@ -5,7 +5,7 @@
 #define INSTR_DEF_INC_R(r) \
 INSTR_DEF(inc_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -24,7 +24,7 @@ INSTR_DEF(inc_##r) \
 #define INSTR_DEF_DEC_R(r) \
 INSTR_DEF(dec_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -55,7 +55,7 @@ INSTR_DEF_INC_DEC_R(l);
 #define INSTR_DEF_ADD_A_R(r) \
 INSTR_DEF(add_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -83,7 +83,7 @@ INSTR_DEF_ADD_A_R(l);
 
 INSTR_DEF(add_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -105,7 +105,7 @@ INSTR_DEF(add_a_hl)
 
 INSTR_DEF(add_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -128,7 +128,7 @@ INSTR_DEF(add_a_n)
 #define INSTR_DEF_ADC_A_R(r) \
 INSTR_DEF(adc_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -157,7 +157,7 @@ INSTR_DEF_ADC_A_R(l);
 
 INSTR_DEF(adc_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -180,7 +180,7 @@ INSTR_DEF(adc_a_hl)
 
 INSTR_DEF(adc_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -204,7 +204,7 @@ INSTR_DEF(adc_a_n)
 #define INSTR_DEF_SUB_A_R(r) \
 INSTR_DEF(sub_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -232,7 +232,7 @@ INSTR_DEF_SUB_A_R(l);
 
 INSTR_DEF(sub_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -254,7 +254,7 @@ INSTR_DEF(sub_a_hl)
 
 INSTR_DEF(sub_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -277,7 +277,7 @@ INSTR_DEF(sub_a_n)
 #define INSTR_DEF_SBC_A_R(r) \
 INSTR_DEF(sbc_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -306,7 +306,7 @@ INSTR_DEF_SBC_A_R(l);
 
 INSTR_DEF(sbc_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -329,7 +329,7 @@ INSTR_DEF(sbc_a_hl)
 
 INSTR_DEF(sbc_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -353,7 +353,7 @@ INSTR_DEF(sbc_a_n)
 #define INSTR_DEF_AND_A_R(r) \
 INSTR_DEF(and_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			cpu->regs.a &= cpu->regs.r; \
@@ -377,7 +377,7 @@ INSTR_DEF_AND_A_R(l);
 
 INSTR_DEF(and_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -395,7 +395,7 @@ INSTR_DEF(and_a_hl)
 
 INSTR_DEF(and_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -414,7 +414,7 @@ INSTR_DEF(and_a_n)
 #define INSTR_DEF_XOR_A_R(r) \
 INSTR_DEF(xor_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			cpu->regs.a ^= cpu->regs.r; \
@@ -438,7 +438,7 @@ INSTR_DEF_XOR_A_R(l);
 
 INSTR_DEF(xor_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -456,7 +456,7 @@ INSTR_DEF(xor_a_hl)
 
 INSTR_DEF(xor_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -475,7 +475,7 @@ INSTR_DEF(xor_a_n)
 #define INSTR_DEF_OR_A_R(r) \
 INSTR_DEF(or_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			cpu->regs.a |= cpu->regs.r; \
@@ -499,7 +499,7 @@ INSTR_DEF_OR_A_R(l);
 
 INSTR_DEF(or_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -517,7 +517,7 @@ INSTR_DEF(or_a_hl)
 
 INSTR_DEF(or_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -536,7 +536,7 @@ INSTR_DEF(or_a_n)
 #define INSTR_DEF_CP_A_R(r) \
 INSTR_DEF(cp_a_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 		{ \
@@ -562,7 +562,7 @@ INSTR_DEF_CP_A_R(l);
 
 INSTR_DEF(cp_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -582,7 +582,7 @@ INSTR_DEF(cp_a_hl)
 
 INSTR_DEF(cp_a_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -602,7 +602,7 @@ INSTR_DEF(cp_a_n)
 
 INSTR_DEF(inc_rhl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -625,7 +625,7 @@ INSTR_DEF(inc_rhl)
 
 INSTR_DEF(dec_rhl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -648,7 +648,7 @@ INSTR_DEF(dec_rhl)
 
 INSTR_DEF(daa)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			if (CPU_GET_FLAG_N(cpu))
@@ -679,7 +679,7 @@ INSTR_DEF(daa)
 
 INSTR_DEF(cpl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			cpu->regs.a ^= 0xFF;
@@ -693,7 +693,7 @@ INSTR_DEF(cpl)
 
 INSTR_DEF(scf)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			CPU_SET_FLAG_N(cpu, 0);
@@ -707,7 +707,7 @@ INSTR_DEF(scf)
 
 INSTR_DEF(ccf)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			CPU_SET_FLAG_N(cpu, 0);

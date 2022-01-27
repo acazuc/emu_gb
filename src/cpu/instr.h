@@ -9,7 +9,7 @@ typedef struct cpu_s cpu_t;
 typedef struct cpu_instr_s
 {
 	const char *name;
-	bool (*fn)(cpu_t *cpu, uint32_t count);
+	bool (*fn)(cpu_t *cpu);
 } cpu_instr_t;
 
 extern cpu_instr_t g_cpu_instructions[256];
@@ -20,9 +20,9 @@ extern cpu_instr_t g_cpu_int_instructions[5];
 	cpu_instr_##name
 
 #define INSTR_DECL(name) \
-	extern bool INSTR_NAME(name)(cpu_t *cpu, uint32_t count)
+	extern bool INSTR_NAME(name)(cpu_t *cpu)
 
 #define INSTR_DEF(name) \
-	bool INSTR_NAME(name)(cpu_t *cpu, uint32_t count)
+	bool INSTR_NAME(name)(cpu_t *cpu)
 
 #endif

@@ -204,7 +204,6 @@ INSTR_DECL(int_60);
 
 INSTR_DEF(unset)
 {
-	(void)count;
 	cpu->regs.pc++;
 	return true;
 }

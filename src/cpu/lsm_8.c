@@ -4,7 +4,7 @@
 #define INSTR_DEF_LD_RR_A(rr) \
 INSTR_DEF(ld_##rr##_a) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -23,7 +23,7 @@ INSTR_DEF_LD_RR_A(sp);
 #define INSTR_DEF_LD_A_RR(rr) \
 INSTR_DEF(ld_a_##rr) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -42,7 +42,7 @@ INSTR_DEF_LD_A_RR(sp);
 #define INSTR_DEF_LD_R_N(r) \
 INSTR_DEF(ld_##r##_n) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -65,7 +65,7 @@ INSTR_DEF_LD_R_N(l);
 #define INSTR_DEF_LD_R_R(r1, r2) \
 INSTR_DEF(ld_##r1##_##r2) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			cpu->regs.r1 = cpu->regs.r2; \
@@ -85,7 +85,7 @@ INSTR_DEF_LD_R_R(r, h) \
 INSTR_DEF_LD_R_R(r, l) \
 INSTR_DEF(ld_##r##_hl) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -98,7 +98,7 @@ INSTR_DEF(ld_##r##_hl) \
 } \
 INSTR_DEF(ld_hl_##r) \
 { \
-	switch (count) \
+	switch (cpu->instr_cycle) \
 	{ \
 		case 0: \
 			return false; \
@@ -120,7 +120,7 @@ INSTR_DEF_LD_R(l);
 
 INSTR_DEF(ldi_hl_a)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -134,7 +134,7 @@ INSTR_DEF(ldi_hl_a)
 
 INSTR_DEF(ldi_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -148,7 +148,7 @@ INSTR_DEF(ldi_a_hl)
 
 INSTR_DEF(ldd_hl_a)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -162,7 +162,7 @@ INSTR_DEF(ldd_hl_a)
 
 INSTR_DEF(ldd_a_hl)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -176,7 +176,7 @@ INSTR_DEF(ldd_a_hl)
 
 INSTR_DEF(ld_rhl_n)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -193,7 +193,7 @@ INSTR_DEF(ld_rhl_n)
 
 INSTR_DEF(ld_ffn_a)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -210,7 +210,7 @@ INSTR_DEF(ld_ffn_a)
 
 INSTR_DEF(ld_ffc_a)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -224,7 +224,7 @@ INSTR_DEF(ld_ffc_a)
 
 INSTR_DEF(ld_a_ffn)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -241,7 +241,7 @@ INSTR_DEF(ld_a_ffn)
 
 INSTR_DEF(ld_a_ffc)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -255,7 +255,7 @@ INSTR_DEF(ld_a_ffc)
 
 INSTR_DEF(ld_a_nn)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;
@@ -275,7 +275,7 @@ INSTR_DEF(ld_a_nn)
 
 INSTR_DEF(ld_nn_a)
 {
-	switch (count)
+	switch (cpu->instr_cycle)
 	{
 		case 0:
 			return false;

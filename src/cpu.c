@@ -187,7 +187,7 @@ static void cpu_cycle(cpu_t *cpu)
 		cpu->state = CPU_RUN;
 	}
 
-	bool end = cpu->instr->fn(cpu, cpu->instr_cycle);
+	bool end = cpu->instr->fn(cpu);
 	if (end)
 	{
 		switch (cpu->ei)
