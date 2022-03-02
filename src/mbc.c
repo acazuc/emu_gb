@@ -28,7 +28,8 @@ mbc_t *mbc_new(const void *data, size_t len)
 		return NULL;
 	}
 
-	uint8_t rombanks = len / (32 * 1024) - 1;
+	//uint8_t rombanks = len / (32 * 1024) - 1;
+	uint8_t rombanks = (2 << ((uint8_t*)data)[0x148]) - 1;
 	uint8_t rambanks;
 	switch (((uint8_t*)data)[0x149])
 	{
