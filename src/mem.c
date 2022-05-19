@@ -361,114 +361,121 @@ static void key1_set(mem_t *mem, uint8_t v)
 
 static uint8_t get(mem_t *mem, uint16_t addr)
 {
-	if (addr < 0x100)
+	switch (addr >> 12)
 	{
-		if (!mem_get_reg(mem, MEM_REG_BOOT))
-			return mem->bios[addr];
+		case 0x0: /* bios / mbc */
+			if (addr < 0x100)
+			{
+				if (!mem_get_reg(mem, MEM_REG_BOOT))
+					return mem->bios[addr];
+			}
+			if (mem->cgb != CGB_NO && addr >= 0x200)
+			{
+				if (!mem_get_reg(mem, MEM_REG_BOOT))
+					return mem->bios[addr];
+			}
+			/* FALLTHROUGH */
+		case 0x1:
+		case 0x2:
+		case 0x3:
+		case 0x4:
+		case 0x5:
+		case 0x6:
+		case 0x7: /* mbc */
+			return mbc_get(mem->mbc, addr);
+		case 0x8:
+		case 0x9: /* vram */
+			return mem->vram[addr - 0x8000 + 0x2000 * mem->vbk];
+		case 0xA:
+		case 0xB: /* external ram */
+			return mbc_get(mem->mbc, addr);
+		case 0xC: /* work ram bank 0 */
+			return mem->workram0[addr - 0xC000];
+		case 0xD: /* work ram bank n */
+			return mem->workram1[addr - 0xD000 + 0x1000 * mem->svbk];
+		case 0xE: /* echo ram C000-D000 */
+			return mem->workram0[addr - 0xE000];
+		case 0xF:
+			if (addr < 0xFE00) /* echo ram D000-DDFF */
+				return mem->workram1[addr - 0xF000 + 0x1000 * mem->svbk];
+
+			if (addr < 0xFEA0) /* OAM */
+				return mem->oam[addr - 0xFE00];
+
+			if (addr < 0xFF00) /* unmapped */
+				return 0;
+
+			if (mem->cgb == CGB_NO && addr >= 0xFF4C && addr <= 0xFF7F)
+				return 0xff;
+
+			switch (addr)
+			{
+				case 0xFF03:
+				case 0xFF08:
+				case 0xFF09:
+				case 0xFF0A:
+				case 0xFF0B:
+				case 0xFF0C:
+				case 0xFF0D:
+				case 0xFF0E:
+				case 0xFF15:
+				case 0xFF1F:
+				case 0xFF27:
+				case 0xFF28:
+				case 0xFF29:
+					return 0xFF;
+				case MEM_REG_JOYP:
+					return joyp_get(mem);
+				case MEM_REG_SC:
+					return sc_get(mem);
+				case MEM_REG_DIV:
+					return div_get(mem);
+				case MEM_REG_TAC:
+					return tac_get(mem);
+				case MEM_REG_IF:
+					return if_get(mem);
+				case MEM_REG_STAT:
+					return stat_get(mem);
+				case MEM_REG_NR10:
+					return nr10_get(mem);
+				case MEM_REG_NR11:
+					return nr11_get(mem);
+				case MEM_REG_NR13:
+					return 0;
+				case MEM_REG_NR14:
+					return nr14_get(mem);
+				case MEM_REG_NR21:
+					return nr21_get(mem);
+				case MEM_REG_NR23:
+					return 0;
+				case MEM_REG_NR24:
+					return nr24_get(mem);
+				case MEM_REG_NR30:
+					return nr30_get(mem);
+				case MEM_REG_NR32:
+					return nr32_get(mem);
+				case MEM_REG_NR33:
+					return 0;
+				case MEM_REG_NR34:
+					return nr34_get(mem);
+				case MEM_REG_NR41:
+					return nr41_get(mem);
+				case MEM_REG_NR44:
+					return nr44_get(mem);
+				case MEM_REG_NR52:
+					return nr52_get(mem);
+				case MEM_REG_BCPD:
+					return bcpd_get(mem);
+				case MEM_REG_OCPD:
+					return ocpd_get(mem);
+				case MEM_REG_HDM5:
+					return hdm5_get(mem);
+				case MEM_REG_KEY1:
+					return key1_get(mem);
+			}
+			return mem->highram[addr - 0xFF00];
 	}
-
-	if (mem->cgb != CGB_NO && addr >= 0x200 && addr <= 0x1000)
-	{
-		if (!mem_get_reg(mem, MEM_REG_BOOT))
-			return mem->bios[addr];
-	}
-
-	if (addr < 0x8000)
-		return mbc_get(mem->mbc, addr);
-
-	if (addr < 0xA000) /* vram */
-		return mem->vram[addr - 0x8000 + 0x2000 * mem->vbk];
-
-	if (addr < 0xC000) /* external ram */
-		return mbc_get(mem->mbc, addr);
-
-	if (addr < 0xD000) /* work ram bank 0 */
-		return mem->workram0[addr - 0xC000];
-
-	if (addr < 0xE000) /* work ram bank n */
-		return mem->workram1[addr - 0xD000 + 0x1000 * mem->svbk];
-
-	if (addr < 0xF000) /* echo ram C000-D000 */
-		return mem->workram0[addr - 0xE000];
-
-	if (addr < 0xFE00) /* echo ram D000-DDFF */
-		return mem->workram1[addr - 0xF000 + 0x1000 * mem->svbk];
-
-	if (addr < 0xFEA0) /* OAM */
-		return mem->oam[addr - 0xFE00];
-
-	if (addr < 0xFF00) /* unmapped */
-		return 0;
-
-	if (mem->cgb == CGB_NO && addr >= 0xFF4C && addr <= 0xFF7F)
-		return 0xff;
-
-	switch (addr)
-	{
-		case 0xFF03:
-		case 0xFF08:
-		case 0xFF09:
-		case 0xFF0A:
-		case 0xFF0B:
-		case 0xFF0C:
-		case 0xFF0D:
-		case 0xFF0E:
-		case 0xFF15:
-		case 0xFF1F:
-		case 0xFF27:
-		case 0xFF28:
-		case 0xFF29:
-			return 0xFF;
-		case MEM_REG_JOYP:
-			return joyp_get(mem);
-		case MEM_REG_SC:
-			return sc_get(mem);
-		case MEM_REG_DIV:
-			return div_get(mem);
-		case MEM_REG_TAC:
-			return tac_get(mem);
-		case MEM_REG_IF:
-			return if_get(mem);
-		case MEM_REG_STAT:
-			return stat_get(mem);
-		case MEM_REG_NR10:
-			return nr10_get(mem);
-		case MEM_REG_NR11:
-			return nr11_get(mem);
-		case MEM_REG_NR13:
-			return 0;
-		case MEM_REG_NR14:
-			return nr14_get(mem);
-		case MEM_REG_NR21:
-			return nr21_get(mem);
-		case MEM_REG_NR23:
-			return 0;
-		case MEM_REG_NR24:
-			return nr24_get(mem);
-		case MEM_REG_NR30:
-			return nr30_get(mem);
-		case MEM_REG_NR32:
-			return nr32_get(mem);
-		case MEM_REG_NR33:
-			return 0;
-		case MEM_REG_NR34:
-			return nr34_get(mem);
-		case MEM_REG_NR41:
-			return nr41_get(mem);
-		case MEM_REG_NR44:
-			return nr44_get(mem);
-		case MEM_REG_NR52:
-			return nr52_get(mem);
-		case MEM_REG_BCPD:
-			return bcpd_get(mem);
-		case MEM_REG_OCPD:
-			return ocpd_get(mem);
-		case MEM_REG_HDM5:
-			return hdm5_get(mem);
-		case MEM_REG_KEY1:
-			return key1_get(mem);
-	}
-	return mem->highram[addr - 0xFF00];
+	return 0;
 }
 
 static void set(mem_t *mem, uint16_t addr, uint8_t v)
